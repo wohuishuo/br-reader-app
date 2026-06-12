@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose 全权接管 UI,这里只要一个无 ActionBar 的底 -->
+    <style name="Theme.ReaderApp" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
