@@ -135,9 +135,13 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                 state = state.selectedChapter,
                 fontScale = state.session.fontScale,
                 initialParagraphIndex = state.session.lastParagraphIndex,
+                userId = state.session.userId,
+                aiResult = state.aiResult,
                 onBack = actions::closeChapter,
                 onFont = actions::setFontScale,
                 onProgress = actions::saveProgress,
+                onSummary = actions::summarizeCurrentChapter,
+                onAsk = actions::askCurrentChapter,
                 modifier = Modifier.padding(padding),
             )
         } else if (state.selectedBook != null) {
@@ -303,11 +307,16 @@ private fun ChapterScreen(
     state: UiState<ChapterDetailDto>,
     fontScale: Float,
     initialParagraphIndex: Int,
+    userId: Long,
+    aiResult: String?,
     onBack: () -> Unit,
     onFont: (Float) -> Unit,
-    onProgress: (Long, Long, Int) -> Unit,
+    onProgress: (Long, Long, Long, Int) -> Unit,
+    onSummary: () -> Unit,
+    onAsk: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var question by remember { mutableStateOf("仙石是什么") }
     Column(modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "返回") }
@@ -317,6 +326,33 @@ private fun ChapterScreen(
             }
             IconButton(onClick = { onFont(fontScale + 0.1f) }) {
                 Icon(Icons.Filled.TextIncrease, contentDescription = "增大字号")
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(onClick = onSummary) { Text("摘要") }
+            OutlinedTextField(
+                value = question,
+                onValueChange = { question = it },
+                label = { Text("问一句") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            Button(onClick = { onAsk(question) }) { Text("提问") }
+        }
+        if (!aiResult.isNullOrBlank()) {
+            Card(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+            ) {
+                Text(
+                    aiResult,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
         when (state) {
@@ -331,7 +367,7 @@ private fun ChapterScreen(
                     }
                 }
                 LaunchedEffect(listState.firstVisibleItemIndex) {
-                    onProgress(chapter.bookId, chapter.id, listState.firstVisibleItemIndex)
+                    onProgress(userId, chapter.bookId, chapter.id, listState.firstVisibleItemIndex)
                 }
                 LazyColumn(
                     state = listState,

@@ -26,6 +26,7 @@ data class ReaderUiState(
     val selectedBook: UiState<BookDetailDto>? = null,
     val selectedChapter: UiState<ChapterDetailDto>? = null,
     val query: String = "",
+    val aiResult: String? = null,
     val notice: String? = null,
 )
 
@@ -86,7 +87,7 @@ class ReaderViewModel @Inject constructor(
         mutable.value = mutable.value.copy(selectedChapter = UiState.Loading)
         runCatching { repository.chapterDetail(chapterId) }
             .onSuccess {
-                repository.saveProgress(bookId, chapterId, 0)
+                repository.saveProgress(mutable.value.session.userId, bookId, chapterId, 0)
                 mutable.value = mutable.value.copy(selectedChapter = UiState.Success(it))
             }
             .onFailure { mutable.value = mutable.value.copy(selectedChapter = UiState.Error(it.toUserMessage())) }
@@ -100,8 +101,31 @@ class ReaderViewModel @Inject constructor(
         repository.saveFontScale(scale)
     }
 
-    fun saveProgress(bookId: Long, chapterId: Long, paragraphIndex: Int) = viewModelScope.launch {
-        repository.saveProgress(bookId, chapterId, paragraphIndex)
+    fun saveProgress(userId: Long, bookId: Long, chapterId: Long, paragraphIndex: Int) = viewModelScope.launch {
+        repository.saveProgress(userId, bookId, chapterId, paragraphIndex)
+    }
+
+    fun summarizeCurrentChapter() = viewModelScope.launch {
+        val chapter = (mutable.value.selectedChapter as? UiState.Success)?.data ?: return@launch
+        mutable.value = mutable.value.copy(aiResult = "正在生成摘要...")
+        runCatching { repository.summarize(chapter) }
+            .onSuccess { mutable.value = mutable.value.copy(aiResult = "摘要: $it") }
+            .onFailure { mutable.value = mutable.value.copy(aiResult = it.toUserMessage()) }
+    }
+
+    fun askCurrentChapter(question: String) = viewModelScope.launch {
+        val chapter = (mutable.value.selectedChapter as? UiState.Success)?.data ?: return@launch
+        if (question.isBlank()) {
+            setNotice("先输入一个问题")
+            return@launch
+        }
+        mutable.value = mutable.value.copy(aiResult = "正在检索原文...")
+        runCatching { repository.ask(chapter.bookId, chapter.id, question) }
+            .onSuccess { answer ->
+                val refs = answer.references.take(2).joinToString("\n") { "第${it.paragraphSeq}段: ${it.content}" }
+                mutable.value = mutable.value.copy(aiResult = "${answer.answer}\n\n$refs")
+            }
+            .onFailure { mutable.value = mutable.value.copy(aiResult = it.toUserMessage()) }
     }
 
     fun consumeNotice() {

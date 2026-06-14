@@ -5,8 +5,8 @@
 书域是拆成 5 个独立模块的电子书平台;本仓是用户真正"拿在手里"的那一块:
 登录(走用户中心)、书城与书架(内容来自书库服务)、沉浸阅读器、AI 划词问答。
 
-> ✅ MVP-2 第一条闭环已完成:登录走用户中心,书城/详情/章节走书库服务,书架用 Room 缓存,
-> token/字号/阅读进度用 DataStore 保存。当前版本适合课程展示和继续扩展统计、AI 能力。
+> ✅ v1 客户端闭环已完成:登录走用户中心,书城/详情/章节走书库服务,阅读进度上报统计服务,
+> 摘要/问答调用 AI 服务;书架用 Room 缓存,token/字号/本地进度用 DataStore 保存。
 
 > ⚠️ **Windows 必须克隆到纯 ASCII 路径**(如 `C:\dev\`)——AGP/aapt2 不支持中文路径,本机仓库就在 `C:\dev\br-reader-app`。
 
@@ -32,6 +32,8 @@ java -jar C:\Users\艾莉\知识数据库\起点-安卓项目\br-library-service
 # 3. 真机 USB 调试:把手机 localhost 转发到电脑后端
 adb reverse tcp:8080 tcp:80
 adb reverse tcp:8082 tcp:8082
+adb reverse tcp:8083 tcp:8083
+adb reverse tcp:8084 tcp:8084
 
 # 4. 构建并安装
 cd C:\dev\br-reader-app
@@ -50,6 +52,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 - 详情:展示简介、标签、章节目录,可加入书架。
 - 书架:Room 本地缓存,重启后仍可看到收藏书。
 - 阅读器:调用 `/api/chapters/{id}`,支持字号调节和阅读进度记忆。
+- 统计:阅读器滚动时调用 MVP-3 `/api/stats/progress` 上报进度。
+- AI:阅读器支持章节摘要和基于原文的问答,调用 MVP-4 `/api/ai/summary` 与 `/api/ai/ask`。
 
 讲解见平台书:[MVP-2 实战章](https://wohuishuo.github.io/book-realm/project/reader)
 

@@ -1,7 +1,9 @@
 package com.bookrealm.reader.di
 
 import com.bookrealm.reader.data.remote.ApiConfig
+import com.bookrealm.reader.data.remote.AiApi
 import com.bookrealm.reader.data.remote.LibraryApi
+import com.bookrealm.reader.data.remote.StatsApi
 import com.bookrealm.reader.data.remote.UserCenterApi
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
@@ -19,6 +21,8 @@ import javax.inject.Singleton
 /** 区分两套后端的 Retrofit 实例(用法:@UserCenterRetrofit retrofit: Retrofit)。 */
 @Qualifier annotation class UserCenterRetrofit
 @Qualifier annotation class LibraryRetrofit
+@Qualifier annotation class StatsRetrofit
+@Qualifier annotation class AiRetrofit
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -46,6 +50,20 @@ object NetworkModule {
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
 
+    @Provides @Singleton @StatsRetrofit
+    fun statsRetrofit(client: OkHttpClient): Retrofit = Retrofit.Builder()
+        .baseUrl(ApiConfig.STATS_BASE_URL)
+        .client(client)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
+
+    @Provides @Singleton @AiRetrofit
+    fun aiRetrofit(client: OkHttpClient): Retrofit = Retrofit.Builder()
+        .baseUrl(ApiConfig.AI_BASE_URL)
+        .client(client)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
+
     @Provides @Singleton
     fun userCenterApi(@UserCenterRetrofit retrofit: Retrofit): UserCenterApi =
         retrofit.create(UserCenterApi::class.java)
@@ -53,4 +71,12 @@ object NetworkModule {
     @Provides @Singleton
     fun libraryApi(@LibraryRetrofit retrofit: Retrofit): LibraryApi =
         retrofit.create(LibraryApi::class.java)
+
+    @Provides @Singleton
+    fun statsApi(@StatsRetrofit retrofit: Retrofit): StatsApi =
+        retrofit.create(StatsApi::class.java)
+
+    @Provides @Singleton
+    fun aiApi(@AiRetrofit retrofit: Retrofit): AiApi =
+        retrofit.create(AiApi::class.java)
 }

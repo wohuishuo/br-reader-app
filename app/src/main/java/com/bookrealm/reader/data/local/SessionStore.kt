@@ -17,6 +17,7 @@ private val Context.readerDataStore by preferencesDataStore("reader_session")
 
 data class SessionSnapshot(
     val token: String = "",
+    val userId: Long = 0,
     val account: String = "",
     val username: String = "",
     val fontScale: Float = 1.0f,
@@ -31,6 +32,7 @@ class SessionStore @Inject constructor(
 ) {
     private object Keys {
         val token = stringPreferencesKey("token")
+        val userId = longPreferencesKey("user_id")
         val account = stringPreferencesKey("account")
         val username = stringPreferencesKey("username")
         val fontScale = floatPreferencesKey("font_scale")
@@ -42,6 +44,7 @@ class SessionStore @Inject constructor(
     val session: Flow<SessionSnapshot> = context.readerDataStore.data.map { prefs ->
         SessionSnapshot(
             token = prefs[Keys.token].orEmpty(),
+            userId = prefs[Keys.userId] ?: 0,
             account = prefs[Keys.account].orEmpty(),
             username = prefs[Keys.username].orEmpty(),
             fontScale = prefs[Keys.fontScale] ?: 1.0f,
@@ -51,9 +54,10 @@ class SessionStore @Inject constructor(
         )
     }
 
-    suspend fun saveLogin(token: String, account: String, username: String) {
+    suspend fun saveLogin(token: String, userId: Long, account: String, username: String) {
         context.readerDataStore.edit {
             it[Keys.token] = token
+            it[Keys.userId] = userId
             it[Keys.account] = account
             it[Keys.username] = username
         }
@@ -62,6 +66,7 @@ class SessionStore @Inject constructor(
     suspend fun clearLogin() {
         context.readerDataStore.edit {
             it.remove(Keys.token)
+            it.remove(Keys.userId)
             it.remove(Keys.account)
             it.remove(Keys.username)
         }

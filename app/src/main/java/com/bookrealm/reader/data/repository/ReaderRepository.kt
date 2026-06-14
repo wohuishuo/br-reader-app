@@ -3,11 +3,18 @@ package com.bookrealm.reader.data.repository
 import com.bookrealm.reader.data.local.BookCacheDao
 import com.bookrealm.reader.data.local.BookCacheEntity
 import com.bookrealm.reader.data.local.SessionStore
+import com.bookrealm.reader.data.remote.AiApi
 import com.bookrealm.reader.data.remote.LibraryApi
+import com.bookrealm.reader.data.remote.StatsApi
 import com.bookrealm.reader.data.remote.UserCenterApi
+import com.bookrealm.reader.data.remote.dto.AiAskRequest
+import com.bookrealm.reader.data.remote.dto.AiAskResponse
+import com.bookrealm.reader.data.remote.dto.AiEmbedRequest
+import com.bookrealm.reader.data.remote.dto.AiSummaryRequest
 import com.bookrealm.reader.data.remote.dto.BookDetailDto
 import com.bookrealm.reader.data.remote.dto.BookItemDto
 import com.bookrealm.reader.data.remote.dto.ChapterDetailDto
+import com.bookrealm.reader.data.remote.dto.ReadingProgressRequest
 import com.bookrealm.reader.data.remote.dto.UserLoginRequest
 import kotlinx.coroutines.flow.Flow
 import retrofit2.HttpException
@@ -19,6 +26,8 @@ import javax.inject.Singleton
 class ReaderRepository @Inject constructor(
     private val userCenterApi: UserCenterApi,
     private val libraryApi: LibraryApi,
+    private val statsApi: StatsApi,
+    private val aiApi: AiApi,
     private val bookCacheDao: BookCacheDao,
     private val sessionStore: SessionStore,
 ) {
@@ -31,6 +40,7 @@ class ReaderRepository @Inject constructor(
         ).requireData()
         sessionStore.saveLogin(
             token = body.token,
+            userId = body.user.id,
             account = body.user.userAccount.ifBlank { account.trim() },
             username = body.user.username?.takeIf { it.isNotBlank() } ?: body.user.userAccount,
         )
@@ -56,8 +66,38 @@ class ReaderRepository @Inject constructor(
 
     suspend fun saveFontScale(scale: Float) = sessionStore.saveFontScale(scale)
 
-    suspend fun saveProgress(bookId: Long, chapterId: Long, paragraphIndex: Int) =
+    suspend fun saveProgress(userId: Long, bookId: Long, chapterId: Long, paragraphIndex: Int) {
         sessionStore.saveProgress(bookId, chapterId, paragraphIndex)
+        if (userId > 0) {
+            runCatching {
+                statsApi.reportProgress(
+                    ReadingProgressRequest(
+                        userId = userId,
+                        bookId = bookId,
+                        chapterId = chapterId,
+                        paragraphIndex = paragraphIndex,
+                    )
+                ).requireData()
+            }
+        }
+    }
+
+    suspend fun summarize(chapter: ChapterDetailDto): String {
+        val text = chapter.paragraphs.joinToString("\n") { it.content }
+        val response = aiApi.summary(AiSummaryRequest(text)).requireData()
+        return response.summary.ifBlank { response.message }
+    }
+
+    suspend fun ask(bookId: Long, chapterId: Long, question: String): AiAskResponse {
+        runCatching { aiApi.embed(AiEmbedRequest(bookId)).requireData() }
+        return aiApi.ask(
+            AiAskRequest(
+                bookId = bookId,
+                chapterId = chapterId,
+                question = question,
+            )
+        ).requireData()
+    }
 
     private fun BookItemDto.toCacheEntity(inShelf: Boolean) = BookCacheEntity(
         id = id,

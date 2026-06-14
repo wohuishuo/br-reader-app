@@ -85,3 +85,65 @@ data class ParagraphDto(
     val seq: Int = 0,
     val content: String = "",
 )
+
+@Serializable
+data class ReadingProgressRequest(
+    val userId: Long,
+    val bookId: Long,
+    val chapterId: Long,
+    val paragraphIndex: Int,
+)
+
+@Serializable
+data class ReadingStatsResponse(
+    val date: String = "",
+    val userId: Long = 0,
+    val bookId: Long = 0,
+    val chapterId: Long = 0,
+    val paragraphIndex: Int = 0,
+    val reportCount: Int = 0,
+    val lastReportTime: String = "",
+)
+
+@Serializable
+data class AiSummaryRequest(val chapterText: String)
+
+@Serializable
+data class AiSummaryResponse(
+    val summary: String = "",
+    val llmUsed: Boolean = false,
+    val message: String = "",
+)
+
+@Serializable
+data class AiEmbedRequest(val bookId: Long)
+
+@Serializable
+data class AiEmbedResponse(
+    val bookId: Long = 0,
+    val documentCount: Int = 0,
+)
+
+@Serializable
+data class AiAskRequest(
+    val bookId: Long,
+    val chapterId: Long? = null,
+    val question: String,
+    val selectedText: String? = null,
+)
+
+@Serializable
+data class AiReferenceDto(
+    val bookId: Long = 0,
+    val chapterId: Long = 0,
+    val paragraphSeq: Int = 0,
+    val content: String = "",
+)
+
+@Serializable
+data class AiAskResponse(
+    val answer: String = "",
+    val llmUsed: Boolean = false,
+    val references: List<AiReferenceDto> = emptyList(),
+    val message: String = "",
+)
