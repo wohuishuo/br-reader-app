@@ -25,6 +25,7 @@ data class BookCacheEntity(
     val title: String,
     val author: String,
     val coverUrl: String?,
+    val intro: String = "",
     val inShelf: Boolean = false,
 )
 
@@ -35,9 +36,15 @@ interface BookCacheDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(books: List<BookCacheEntity>)
+
+    @Query("UPDATE book_cache SET inShelf = 1 WHERE id = :bookId")
+    suspend fun markInShelf(bookId: Long)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM book_cache WHERE id = :bookId AND inShelf = 1)")
+    suspend fun isInShelf(bookId: Long): Boolean
 }
 
-@Database(entities = [BookCacheEntity::class], version = 1, exportSchema = false)
+@Database(entities = [BookCacheEntity::class], version = 2, exportSchema = false)
 abstract class ReaderDatabase : RoomDatabase() {
     abstract fun bookCacheDao(): BookCacheDao
 }
@@ -47,7 +54,9 @@ abstract class ReaderDatabase : RoomDatabase() {
 object DatabaseModule {
     @Provides @Singleton
     fun database(@ApplicationContext ctx: Context): ReaderDatabase =
-        Room.databaseBuilder(ctx, ReaderDatabase::class.java, "reader.db").build()
+        Room.databaseBuilder(ctx, ReaderDatabase::class.java, "reader.db")
+            .fallbackToDestructiveMigration()
+            .build()
 
     @Provides
     fun bookCacheDao(db: ReaderDatabase): BookCacheDao = db.bookCacheDao()

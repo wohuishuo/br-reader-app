@@ -1,6 +1,8 @@
 package com.bookrealm.reader.di
 
 import com.bookrealm.reader.data.remote.ApiConfig
+import com.bookrealm.reader.data.remote.LibraryApi
+import com.bookrealm.reader.data.remote.UserCenterApi
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
 import dagger.Provides
@@ -43,4 +45,12 @@ object NetworkModule {
         .client(client)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
+
+    @Provides @Singleton
+    fun userCenterApi(@UserCenterRetrofit retrofit: Retrofit): UserCenterApi =
+        retrofit.create(UserCenterApi::class.java)
+
+    @Provides @Singleton
+    fun libraryApi(@LibraryRetrofit retrofit: Retrofit): LibraryApi =
+        retrofit.create(LibraryApi::class.java)
 }
