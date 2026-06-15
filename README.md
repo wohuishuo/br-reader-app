@@ -24,6 +24,24 @@
 | 统计 | 阅读时调用统计服务 `/api/stats/progress` |
 | AI | 支持章节摘要和基于原文的问答 |
 
+## 代码结构
+
+**结论:AppRoot 只负责导航,页面和组件各回各家。**
+
+```text
+app/src/main/java/com/bookrealm/reader/
+├── navigation/AppRoot.kt       # 根导航、Snackbar、沉浸阅读切换
+├── ui/screen/                  # 书架、书城、我的、详情、阅读器页面
+├── ui/component/               # 封面、列表行、Loading/Error/Empty 状态
+├── ui/reader/ReadStyle.kt      # 阅读主题、字号、行距模型
+├── ui/theme/Tokens.kt          # 颜色、圆角、间距 token
+├── viewmodel/ReaderViewModel.kt
+├── data/remote/                # Retrofit API 与 DTO
+└── data/local/                 # Room + DataStore
+```
+
+这次拆分是 v2.1 第二轮的基础。后面加划线、笔记、TTS、词典、竖排阅读时,优先改对应页面或组件,不要再把新功能塞回 `AppRoot.kt`。
+
 ## 技术栈
 
 Kotlin · Jetpack Compose · Material 3 · MVVM · StateFlow · Navigation Compose · Hilt · Retrofit · kotlinx-serialization · Room · DataStore · Coil
