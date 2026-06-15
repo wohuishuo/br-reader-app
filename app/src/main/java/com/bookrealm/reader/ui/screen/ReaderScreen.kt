@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.FormatLineSpacing
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Highlight
 import androidx.compose.material.icons.filled.MenuBook
@@ -53,7 +55,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,6 +67,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -105,6 +107,7 @@ fun ReaderScreen(
     var showSettings by remember { mutableStateOf(false) }
     var aiExpanded by remember { mutableStateOf(false) }
     var selectedParagraph by remember { mutableStateOf<ParagraphDto?>(null) }
+    var notePanelVisible by remember { mutableStateOf(false) }
     var noteDraft by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val markedParagraphs = remember(marks) { marks.map { it.paragraphId }.toSet() }
@@ -131,6 +134,8 @@ fun ReaderScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().clickable {
+                        selectedParagraph = null
+                        notePanelVisible = false
                         controlsVisible = !controlsVisible
                         if (!controlsVisible) aiExpanded = false
                     },
@@ -147,11 +152,13 @@ fun ReaderScreen(
                         ParagraphText(
                             paragraph = paragraph,
                             marked = paragraph.id in markedParagraphs,
+                            selected = selectedParagraph?.id == paragraph.id,
                             palette = palette,
                             fontScale = fontScale,
                             lineScale = lineScale,
                             onLongClick = {
                                 selectedParagraph = paragraph
+                                notePanelVisible = false
                                 noteDraft = marks.firstOrNull { it.paragraphId == paragraph.id }?.note.orEmpty()
                             },
                         )
@@ -164,7 +171,10 @@ fun ReaderScreen(
                         palette = palette,
                         onToc = { showToc = true },
                         onSettings = { showSettings = true },
-                        onSummary = onSummary,
+                        onSummary = {
+                            aiExpanded = true
+                            onSummary()
+                        },
                         onListen = { question = "请朗读当前章节"; onAsk("请用一句话说明本章适合怎样朗读") },
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
@@ -217,16 +227,18 @@ fun ReaderScreen(
             }
         }
 
-        selectedParagraph?.let { paragraph ->
-            ModalBottomSheet(onDismissRequest = { selectedParagraph = null }) {
-                ParagraphActionSheet(
+        if (controlsVisible) {
+            selectedParagraph?.let { paragraph ->
+                SelectionToolbar(
                     paragraph = paragraph,
                     noteDraft = noteDraft,
+                    notePanelVisible = notePanelVisible,
                     onNoteChange = { noteDraft = it },
                     onHighlight = {
                         onMark(paragraph.id, paragraph.seq, null)
                         selectedParagraph = null
                     },
+                    onToggleNote = { notePanelVisible = !notePanelVisible },
                     onSaveNote = {
                         onMark(paragraph.id, paragraph.seq, noteDraft)
                         selectedParagraph = null
@@ -238,6 +250,11 @@ fun ReaderScreen(
                         onAsk(q)
                         selectedParagraph = null
                     },
+                    onClose = {
+                        selectedParagraph = null
+                        notePanelVisible = false
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(start = 14.dp, end = 14.dp, bottom = 84.dp),
                 )
             }
         }
@@ -245,43 +262,61 @@ fun ReaderScreen(
 }
 
 @Composable
-private fun ParagraphActionSheet(
+private fun SelectionToolbar(
     paragraph: ParagraphDto,
     noteDraft: String,
+    notePanelVisible: Boolean,
     onNoteChange: (String) -> Unit,
     onHighlight: () -> Unit,
+    onToggleNote: () -> Unit,
     onSaveNote: () -> Unit,
     onAsk: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("第 ${paragraph.seq} 段", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text(paragraph.content, maxLines = 3, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            FilledTonalButton(onClick = onHighlight) {
-                Icon(Icons.Filled.Highlight, contentDescription = null)
-                Spacer(Modifier.width(6.dp))
-                Text("划线")
-            }
-            FilledTonalButton(onClick = onAsk) {
-                Icon(Icons.Filled.Psychology, contentDescription = null)
-                Spacer(Modifier.width(6.dp))
-                Text("问 AI")
-            }
-        }
-        OutlinedTextField(
-            value = noteDraft,
-            onValueChange = onNoteChange,
-            label = { Text("写笔记") },
-            minLines = 2,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onSaveNote) {
-                Icon(Icons.Filled.EditNote, contentDescription = null)
-                Spacer(Modifier.width(6.dp))
-                Text("保存笔记")
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (notePanelVisible) {
+            Surface(shape = MaterialTheme.shapes.large, tonalElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("写想法", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(paragraph.content, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedTextField(
+                        value = noteDraft,
+                        onValueChange = onNoteChange,
+                        label = { Text("笔记") },
+                        minLines = 2,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        Button(onClick = onSaveNote) { Text("保存") }
+                    }
+                }
             }
         }
+        Surface(shape = MaterialTheme.shapes.extraLarge, color = Color(0xEE2F2F2F), tonalElevation = 8.dp) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SelectionTool(Icons.Filled.ContentCopy, "复制") {}
+                SelectionTool(Icons.Filled.Highlight, "划线", onHighlight)
+                SelectionTool(Icons.Filled.EditNote, "写想法", onToggleNote)
+                SelectionTool(Icons.Filled.Psychology, "AI 问书", onAsk)
+                SelectionTool(Icons.Filled.Headphones, "听当前") {}
+                IconButton(onClick = onClose, modifier = Modifier.size(38.dp)) {
+                    Icon(Icons.Filled.Close, contentDescription = "关闭", tint = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionTool(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable(onClick = onClick).padding(horizontal = 4.dp)) {
+        Icon(icon, contentDescription = label, tint = Color.White)
+        Text(label, color = Color.White, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -290,6 +325,7 @@ private fun ParagraphActionSheet(
 private fun ParagraphText(
     paragraph: ParagraphDto,
     marked: Boolean,
+    selected: Boolean,
     palette: ReaderPalette,
     fontScale: Float,
     lineScale: Float,
@@ -298,7 +334,13 @@ private fun ParagraphText(
     Text(
         paragraph.content,
         modifier = Modifier
-            .background(if (marked) androidx.compose.ui.graphics.Color(0x33FED766) else androidx.compose.ui.graphics.Color.Transparent)
+            .background(
+                when {
+                    selected -> Color(0x663C8DFF)
+                    marked -> Color(0x33FED766)
+                    else -> Color.Transparent
+                }
+            )
             .combinedClickable(onClick = {}, onLongClick = onLongClick)
             .padding(vertical = 2.dp),
         color = palette.foreground,

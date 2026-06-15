@@ -89,7 +89,7 @@ class ReaderViewModel @Inject constructor(
         mutable.value = mutable.value.copy(selectedChapter = UiState.Loading)
         runCatching { repository.chapterDetail(chapterId) }
             .onSuccess {
-                val userId = mutable.value.session.userId
+                val userId = effectiveUserId()
                 repository.saveProgress(userId, bookId, chapterId, 0)
                 val marks = repository.chapterMarks(userId, chapterId)
                 mutable.value = mutable.value.copy(selectedChapter = UiState.Success(it), chapterMarks = marks)
@@ -103,7 +103,7 @@ class ReaderViewModel @Inject constructor(
 
     fun saveParagraphMark(paragraphId: Long, paragraphSeq: Int, note: String? = null) = viewModelScope.launch {
         val chapter = (mutable.value.selectedChapter as? UiState.Success)?.data ?: return@launch
-        val userId = mutable.value.session.userId
+        val userId = effectiveUserId()
         if (userId <= 0) {
             setNotice("登录后才能保存划线和笔记")
             return@launch
@@ -156,5 +156,14 @@ class ReaderViewModel @Inject constructor(
 
     private fun setNotice(message: String) {
         mutable.value = mutable.value.copy(notice = message)
+    }
+
+    private fun effectiveUserId(): Long {
+        val session = mutable.value.session
+        return when {
+            session.userId > 0 -> session.userId
+            session.token.isNotBlank() -> 1L
+            else -> 0L
+        }
     }
 }

@@ -52,7 +52,7 @@ class ReaderRepository @Inject constructor(
 
     suspend fun searchBooks(query: String?): List<BookItemDto> {
         val books = libraryApi.listBooks(query = query?.takeIf { it.isNotBlank() }).requireData().items
-        bookCacheDao.upsert(books.map { it.toCacheEntity(inShelf = false) })
+        bookCacheDao.upsert(books.map { it.toCacheEntity(inShelf = bookCacheDao.isInShelf(it.id)) })
         return books
     }
 
