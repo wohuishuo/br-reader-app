@@ -2,6 +2,8 @@ package com.bookrealm.reader.data.repository
 
 import com.bookrealm.reader.data.local.BookCacheDao
 import com.bookrealm.reader.data.local.BookCacheEntity
+import com.bookrealm.reader.data.local.ChapterCacheDao
+import com.bookrealm.reader.data.local.ChapterCacheEntity
 import com.bookrealm.reader.data.local.SessionStore
 import com.bookrealm.reader.data.remote.AiApi
 import com.bookrealm.reader.data.remote.LibraryApi
@@ -19,6 +21,8 @@ import com.bookrealm.reader.data.remote.dto.ReadingProgressRequest
 import com.bookrealm.reader.data.remote.dto.SaveMarkRequest
 import com.bookrealm.reader.data.remote.dto.UserLoginRequest
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
@@ -31,6 +35,7 @@ class ReaderRepository @Inject constructor(
     private val statsApi: StatsApi,
     private val aiApi: AiApi,
     private val bookCacheDao: BookCacheDao,
+    private val chapterCacheDao: ChapterCacheDao,
     private val sessionStore: SessionStore,
 ) {
     val session = sessionStore.session
@@ -61,10 +66,20 @@ class ReaderRepository @Inject constructor(
     suspend fun addToShelf(book: BookDetailDto) {
         bookCacheDao.upsert(listOf(book.toCacheEntity(inShelf = true)))
         bookCacheDao.markInShelf(book.id)
+        runCatching {
+            book.chapters.take(8).forEach { chapter ->
+                chapterDetail(chapter.id)
+            }
+        }
     }
 
-    suspend fun chapterDetail(chapterId: Long): ChapterDetailDto =
-        libraryApi.chapterDetail(chapterId).requireData()
+    suspend fun chapterDetail(chapterId: Long): ChapterDetailDto {
+        return runCatching {
+            libraryApi.chapterDetail(chapterId).requireData().also { cacheChapter(it) }
+        }.getOrElse { error ->
+            chapterCacheDao.findById(chapterId)?.toDto() ?: throw error
+        }
+    }
 
     suspend fun chapterMarks(userId: Long, chapterId: Long): List<MarkItemDto> {
         if (userId <= 0) return emptyList()
@@ -141,6 +156,27 @@ class ReaderRepository @Inject constructor(
         coverUrl = coverUrl,
         intro = intro,
         inShelf = inShelf,
+    )
+
+    private suspend fun cacheChapter(chapter: ChapterDetailDto) {
+        chapterCacheDao.upsert(
+            ChapterCacheEntity(
+                id = chapter.id,
+                bookId = chapter.bookId,
+                seq = chapter.seq,
+                title = chapter.title,
+                paragraphsJson = Json.encodeToString(chapter.paragraphs),
+                updateTime = System.currentTimeMillis(),
+            )
+        )
+    }
+
+    private fun ChapterCacheEntity.toDto() = ChapterDetailDto(
+        id = id,
+        bookId = bookId,
+        seq = seq,
+        title = title,
+        paragraphs = Json.decodeFromString(paragraphsJson),
     )
 }
 

@@ -29,6 +29,16 @@ data class BookCacheEntity(
     val inShelf: Boolean = false,
 )
 
+@Entity(tableName = "chapter_cache")
+data class ChapterCacheEntity(
+    @PrimaryKey val id: Long,
+    val bookId: Long,
+    val seq: Int,
+    val title: String,
+    val paragraphsJson: String,
+    val updateTime: Long,
+)
+
 @Dao
 interface BookCacheDao {
     @Query("SELECT * FROM book_cache WHERE inShelf = 1")
@@ -44,9 +54,19 @@ interface BookCacheDao {
     suspend fun isInShelf(bookId: Long): Boolean
 }
 
-@Database(entities = [BookCacheEntity::class], version = 2, exportSchema = false)
+@Dao
+interface ChapterCacheDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(chapter: ChapterCacheEntity)
+
+    @Query("SELECT * FROM chapter_cache WHERE id = :chapterId")
+    suspend fun findById(chapterId: Long): ChapterCacheEntity?
+}
+
+@Database(entities = [BookCacheEntity::class, ChapterCacheEntity::class], version = 3, exportSchema = false)
 abstract class ReaderDatabase : RoomDatabase() {
     abstract fun bookCacheDao(): BookCacheDao
+    abstract fun chapterCacheDao(): ChapterCacheDao
 }
 
 @Module
@@ -60,4 +80,7 @@ object DatabaseModule {
 
     @Provides
     fun bookCacheDao(db: ReaderDatabase): BookCacheDao = db.bookCacheDao()
+
+    @Provides
+    fun chapterCacheDao(db: ReaderDatabase): ChapterCacheDao = db.chapterCacheDao()
 }
