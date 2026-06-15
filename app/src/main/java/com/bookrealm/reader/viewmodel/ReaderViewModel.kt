@@ -8,6 +8,7 @@ import com.bookrealm.reader.data.local.SessionSnapshot
 import com.bookrealm.reader.data.remote.dto.BookDetailDto
 import com.bookrealm.reader.data.remote.dto.BookItemDto
 import com.bookrealm.reader.data.remote.dto.ChapterDetailDto
+import com.bookrealm.reader.data.remote.dto.MarkItemDto
 import com.bookrealm.reader.data.repository.ReaderRepository
 import com.bookrealm.reader.data.repository.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,6 +26,7 @@ data class ReaderUiState(
     val shelf: List<BookCacheEntity> = emptyList(),
     val selectedBook: UiState<BookDetailDto>? = null,
     val selectedChapter: UiState<ChapterDetailDto>? = null,
+    val chapterMarks: List<MarkItemDto> = emptyList(),
     val query: String = "",
     val aiResult: String? = null,
     val notice: String? = null,
@@ -87,14 +89,34 @@ class ReaderViewModel @Inject constructor(
         mutable.value = mutable.value.copy(selectedChapter = UiState.Loading)
         runCatching { repository.chapterDetail(chapterId) }
             .onSuccess {
-                repository.saveProgress(mutable.value.session.userId, bookId, chapterId, 0)
-                mutable.value = mutable.value.copy(selectedChapter = UiState.Success(it))
+                val userId = mutable.value.session.userId
+                repository.saveProgress(userId, bookId, chapterId, 0)
+                val marks = repository.chapterMarks(userId, chapterId)
+                mutable.value = mutable.value.copy(selectedChapter = UiState.Success(it), chapterMarks = marks)
             }
             .onFailure { mutable.value = mutable.value.copy(selectedChapter = UiState.Error(it.toUserMessage())) }
     }
 
     fun closeChapter() {
-        mutable.value = mutable.value.copy(selectedChapter = null)
+        mutable.value = mutable.value.copy(selectedChapter = null, chapterMarks = emptyList())
+    }
+
+    fun saveParagraphMark(paragraphId: Long, paragraphSeq: Int, note: String? = null) = viewModelScope.launch {
+        val chapter = (mutable.value.selectedChapter as? UiState.Success)?.data ?: return@launch
+        val userId = mutable.value.session.userId
+        if (userId <= 0) {
+            setNotice("登录后才能保存划线和笔记")
+            return@launch
+        }
+        runCatching {
+            repository.saveMark(userId, chapter.bookId, chapter.id, paragraphId, paragraphSeq, note)
+            repository.chapterMarks(userId, chapter.id)
+        }.onSuccess {
+            mutable.value = mutable.value.copy(chapterMarks = it)
+            setNotice(if (note.isNullOrBlank()) "已划线" else "笔记已保存")
+        }.onFailure {
+            setNotice(it.toUserMessage())
+        }
     }
 
     fun setFontScale(scale: Float) = viewModelScope.launch {

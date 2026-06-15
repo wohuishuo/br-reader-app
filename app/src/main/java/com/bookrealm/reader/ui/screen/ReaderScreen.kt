@@ -2,7 +2,8 @@ package com.bookrealm.reader.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,8 @@ import androidx.compose.material.icons.filled.FormatLineSpacing
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Highlight
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Nightlight
@@ -50,6 +53,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,12 +72,14 @@ import androidx.compose.ui.unit.dp
 import com.bookrealm.reader.core.UiState
 import com.bookrealm.reader.data.remote.dto.ChapterDetailDto
 import com.bookrealm.reader.data.remote.dto.ChapterItemDto
+import com.bookrealm.reader.data.remote.dto.MarkItemDto
+import com.bookrealm.reader.data.remote.dto.ParagraphDto
 import com.bookrealm.reader.ui.component.ChapterRow
 import com.bookrealm.reader.ui.component.LoadingBox
 import com.bookrealm.reader.ui.component.StateBox
 import com.bookrealm.reader.ui.reader.ReaderPalette
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ReaderScreen(
     state: UiState<ChapterDetailDto>,
@@ -81,12 +87,14 @@ fun ReaderScreen(
     initialParagraphIndex: Int,
     userId: Long,
     aiResult: String?,
+    marks: List<MarkItemDto>,
     chapters: List<ChapterItemDto>,
     onBack: () -> Unit,
     onFont: (Float) -> Unit,
     onProgress: (Long, Long, Long, Int) -> Unit,
     onSummary: () -> Unit,
     onAsk: (String) -> Unit,
+    onMark: (Long, Int, String?) -> Unit,
     onOpenChapter: (Long, Long) -> Unit,
 ) {
     var question by remember { mutableStateOf("仙石是什么") }
@@ -96,7 +104,10 @@ fun ReaderScreen(
     var showToc by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var aiExpanded by remember { mutableStateOf(false) }
+    var selectedParagraph by remember { mutableStateOf<ParagraphDto?>(null) }
+    var noteDraft by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val markedParagraphs = remember(marks) { marks.map { it.paragraphId }.toSet() }
 
     BackHandler(enabled = aiExpanded) {
         aiExpanded = false
@@ -133,13 +144,16 @@ fun ReaderScreen(
                         item { AiResultCard(aiResult = aiResult) }
                     }
                     items(chapter.paragraphs, key = { it.id }) { paragraph ->
-                        Text(
-                            paragraph.content,
-                            color = palette.foreground,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontSize = MaterialTheme.typography.bodyLarge.fontSize * fontScale,
-                                lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * fontScale * lineScale,
-                            )
+                        ParagraphText(
+                            paragraph = paragraph,
+                            marked = paragraph.id in markedParagraphs,
+                            palette = palette,
+                            fontScale = fontScale,
+                            lineScale = lineScale,
+                            onLongClick = {
+                                selectedParagraph = paragraph
+                                noteDraft = marks.firstOrNull { it.paragraphId == paragraph.id }?.note.orEmpty()
+                            },
                         )
                     }
                 }
@@ -202,7 +216,97 @@ fun ReaderScreen(
                 )
             }
         }
+
+        selectedParagraph?.let { paragraph ->
+            ModalBottomSheet(onDismissRequest = { selectedParagraph = null }) {
+                ParagraphActionSheet(
+                    paragraph = paragraph,
+                    noteDraft = noteDraft,
+                    onNoteChange = { noteDraft = it },
+                    onHighlight = {
+                        onMark(paragraph.id, paragraph.seq, null)
+                        selectedParagraph = null
+                    },
+                    onSaveNote = {
+                        onMark(paragraph.id, paragraph.seq, noteDraft)
+                        selectedParagraph = null
+                    },
+                    onAsk = {
+                        val q = "解释这段话: ${paragraph.content.take(80)}"
+                        question = q
+                        aiExpanded = true
+                        onAsk(q)
+                        selectedParagraph = null
+                    },
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun ParagraphActionSheet(
+    paragraph: ParagraphDto,
+    noteDraft: String,
+    onNoteChange: (String) -> Unit,
+    onHighlight: () -> Unit,
+    onSaveNote: () -> Unit,
+    onAsk: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("第 ${paragraph.seq} 段", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(paragraph.content, maxLines = 3, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            FilledTonalButton(onClick = onHighlight) {
+                Icon(Icons.Filled.Highlight, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("划线")
+            }
+            FilledTonalButton(onClick = onAsk) {
+                Icon(Icons.Filled.Psychology, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("问 AI")
+            }
+        }
+        OutlinedTextField(
+            value = noteDraft,
+            onValueChange = onNoteChange,
+            label = { Text("写笔记") },
+            minLines = 2,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onSaveNote) {
+                Icon(Icons.Filled.EditNote, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("保存笔记")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ParagraphText(
+    paragraph: ParagraphDto,
+    marked: Boolean,
+    palette: ReaderPalette,
+    fontScale: Float,
+    lineScale: Float,
+    onLongClick: () -> Unit,
+) {
+    Text(
+        paragraph.content,
+        modifier = Modifier
+            .background(if (marked) androidx.compose.ui.graphics.Color(0x33FED766) else androidx.compose.ui.graphics.Color.Transparent)
+            .combinedClickable(onClick = {}, onLongClick = onLongClick)
+            .padding(vertical = 2.dp),
+        color = palette.foreground,
+        style = MaterialTheme.typography.bodyLarge.copy(
+            fontSize = MaterialTheme.typography.bodyLarge.fontSize * fontScale,
+            lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * fontScale * lineScale,
+        )
+    )
 }
 
 @Composable

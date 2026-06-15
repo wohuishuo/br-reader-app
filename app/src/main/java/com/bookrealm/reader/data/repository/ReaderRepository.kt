@@ -14,7 +14,9 @@ import com.bookrealm.reader.data.remote.dto.AiSummaryRequest
 import com.bookrealm.reader.data.remote.dto.BookDetailDto
 import com.bookrealm.reader.data.remote.dto.BookItemDto
 import com.bookrealm.reader.data.remote.dto.ChapterDetailDto
+import com.bookrealm.reader.data.remote.dto.MarkItemDto
 import com.bookrealm.reader.data.remote.dto.ReadingProgressRequest
+import com.bookrealm.reader.data.remote.dto.SaveMarkRequest
 import com.bookrealm.reader.data.remote.dto.UserLoginRequest
 import kotlinx.coroutines.flow.Flow
 import retrofit2.HttpException
@@ -63,6 +65,30 @@ class ReaderRepository @Inject constructor(
 
     suspend fun chapterDetail(chapterId: Long): ChapterDetailDto =
         libraryApi.chapterDetail(chapterId).requireData()
+
+    suspend fun chapterMarks(userId: Long, chapterId: Long): List<MarkItemDto> {
+        if (userId <= 0) return emptyList()
+        return libraryApi.chapterMarks(chapterId, userId).requireData()
+    }
+
+    suspend fun saveMark(
+        userId: Long,
+        bookId: Long,
+        chapterId: Long,
+        paragraphId: Long,
+        paragraphSeq: Int,
+        note: String?,
+    ): MarkItemDto = libraryApi.saveMark(
+        SaveMarkRequest(
+            userId = userId,
+            bookId = bookId,
+            chapterId = chapterId,
+            paragraphId = paragraphId,
+            paragraphSeq = paragraphSeq,
+            markType = if (note.isNullOrBlank()) "highlight" else "note",
+            note = note,
+        )
+    ).requireData()
 
     suspend fun saveFontScale(scale: Float) = sessionStore.saveFontScale(scale)
 

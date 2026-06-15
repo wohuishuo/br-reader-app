@@ -87,6 +87,30 @@ data class ParagraphDto(
 )
 
 @Serializable
+data class SaveMarkRequest(
+    val userId: Long,
+    val bookId: Long,
+    val chapterId: Long,
+    val paragraphId: Long,
+    val paragraphSeq: Int,
+    val markType: String = "highlight",
+    val note: String? = null,
+)
+
+@Serializable
+data class MarkItemDto(
+    val id: Long = 0,
+    val userId: Long = 0,
+    val bookId: Long = 0,
+    val chapterId: Long = 0,
+    val paragraphId: Long = 0,
+    val paragraphSeq: Int = 0,
+    val markType: String = "highlight",
+    val note: String? = null,
+    val updateTime: String = "",
+)
+
+@Serializable
 data class ReadingProgressRequest(
     val userId: Long,
     val bookId: Long,

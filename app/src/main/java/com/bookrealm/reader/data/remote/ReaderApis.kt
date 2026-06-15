@@ -11,9 +11,12 @@ import com.bookrealm.reader.data.remote.dto.AiEmbedResponse
 import com.bookrealm.reader.data.remote.dto.AiSummaryRequest
 import com.bookrealm.reader.data.remote.dto.AiSummaryResponse
 import com.bookrealm.reader.data.remote.dto.LoginUserResponse
+import com.bookrealm.reader.data.remote.dto.MarkItemDto
 import com.bookrealm.reader.data.remote.dto.ReadingProgressRequest
 import com.bookrealm.reader.data.remote.dto.ReadingStatsResponse
+import com.bookrealm.reader.data.remote.dto.SaveMarkRequest
 import com.bookrealm.reader.data.remote.dto.UserLoginRequest
+import retrofit2.http.DELETE
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -38,6 +41,15 @@ interface LibraryApi {
 
     @GET("chapters/{id}")
     suspend fun chapterDetail(@Path("id") id: Long): BaseResponse<ChapterDetailDto>
+
+    @POST("marks")
+    suspend fun saveMark(@Body request: SaveMarkRequest): BaseResponse<MarkItemDto>
+
+    @GET("chapters/{id}/marks")
+    suspend fun chapterMarks(@Path("id") chapterId: Long, @Query("userId") userId: Long): BaseResponse<List<MarkItemDto>>
+
+    @DELETE("marks/{id}")
+    suspend fun deleteMark(@Path("id") id: Long, @Query("userId") userId: Long): BaseResponse<Boolean>
 }
 
 interface StatsApi {

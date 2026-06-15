@@ -159,12 +159,14 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                     initialParagraphIndex = state.session.lastParagraphIndex,
                     userId = state.session.userId,
                     aiResult = state.aiResult,
+                    marks = state.chapterMarks,
                     chapters = (state.selectedBook as? UiState.Success)?.data?.chapters.orEmpty(),
                     onBack = actions::closeChapter,
                     onFont = actions::setFontScale,
                     onProgress = actions::saveProgress,
                     onSummary = actions::summarizeCurrentChapter,
                     onAsk = actions::askCurrentChapter,
+                    onMark = actions::saveParagraphMark,
                     onOpenChapter = actions::openChapter,
                 )
             }
