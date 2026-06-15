@@ -210,7 +210,7 @@ fun ReaderScreen(
                 }
 
                 if (controlsVisible) {
-                    ReaderTopBar(title = chapter.title, palette = palette, onBack = onBack)
+                    ReaderTopBar(title = chapter.title, palette = palette, onBack = onBack, onMore = { showSettings = true })
                     ReaderBottomBar(
                         palette = palette,
                         onToc = { showToc = true },
@@ -251,7 +251,7 @@ fun ReaderScreen(
                     onAsk(question)
                 },
             )
-        } else if (selectedParagraphs.isEmpty()) {
+        } else if (controlsVisible && selectedParagraphs.isEmpty()) {
             AiAskButton(
                 onClick = { aiExpanded = true },
                 modifier = Modifier
@@ -391,7 +391,7 @@ private fun ParagraphText(
 }
 
 @Composable
-private fun ReaderTopBar(title: String, palette: ReaderPalette, onBack: () -> Unit) {
+private fun ReaderTopBar(title: String, palette: ReaderPalette, onBack: () -> Unit, onMore: () -> Unit) {
     BrReaderTopSurface(containerColor = palette.background) {
         Row(
             Modifier
@@ -402,7 +402,7 @@ private fun ReaderTopBar(title: String, palette: ReaderPalette, onBack: () -> Un
         ) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = palette.foreground) }
             Text(title, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, color = palette.foreground)
-            IconButton(onClick = {}) { Icon(Icons.Filled.MoreVert, contentDescription = "更多", tint = palette.foreground) }
+            IconButton(onClick = onMore) { Icon(Icons.Filled.MoreVert, contentDescription = "更多", tint = palette.foreground) }
         }
     }
 }
@@ -514,8 +514,9 @@ private fun AiAskFullScreen(
             Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .displayCutoutPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = BrDimens.PagePaddingLarge, vertical = BrDimens.GapSm),
+                .padding(start = BrDimens.PagePaddingLarge, end = BrDimens.PagePaddingLarge, top = 30.dp, bottom = BrDimens.GapSm),
             verticalArrangement = Arrangement.spacedBy(BrDimens.GapMd),
         ) {
             Row(

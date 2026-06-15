@@ -60,7 +60,7 @@ private val tabs = listOf(
 @Composable
 fun AppRoot(viewModel: ReaderViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ReaderTheme(darkTheme = state.darkTheme, dynamicColor = state.dynamicColor) {
+    ReaderTheme(darkTheme = state.darkTheme, dynamicColor = state.dynamicColor, preset = state.themePreset) {
         AppRootContent(state, viewModel)
     }
 }
@@ -189,10 +189,12 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                             username = state.session.username,
                             darkTheme = state.darkTheme,
                             dynamicColor = state.dynamicColor,
+                            themePreset = state.themePreset,
                             onLogin = actions::login,
                             onLogout = actions::logout,
                             onDarkTheme = actions::setDarkTheme,
                             onDynamicColor = actions::setDynamicColor,
+                            onThemePreset = actions::setThemePreset,
                         )
                     }
                 }

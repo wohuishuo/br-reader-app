@@ -12,7 +12,8 @@ val BrandTeal = Color(0xFF48CFAD)
 fun ReaderTheme(
     darkTheme: Boolean = androidx.compose.foundation.isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
+    preset: String = "purple",
     content: @Composable () -> Unit
 ) {
-    BrTheme(darkTheme = darkTheme, dynamicColor = dynamicColor, content = content)
+    BrTheme(darkTheme = darkTheme, dynamicColor = dynamicColor, preset = preset, content = content)
 }

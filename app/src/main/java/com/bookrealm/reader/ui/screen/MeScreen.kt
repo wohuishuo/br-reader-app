@@ -33,10 +33,12 @@ fun MeScreen(
     username: String,
     darkTheme: Boolean,
     dynamicColor: Boolean,
+    themePreset: String,
     onLogin: (String, String) -> Unit,
     onLogout: () -> Unit,
     onDarkTheme: (Boolean) -> Unit,
     onDynamicColor: (Boolean) -> Unit,
+    onThemePreset: (String) -> Unit,
 ) {
     var userAccount by remember { mutableStateOf("root") }
     var password by remember { mutableStateOf("12345678") }
@@ -59,6 +61,12 @@ fun MeScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(BrDimens.GapSm)) {
                     BrSettingSwatch("品牌色", selected = !dynamicColor, onClick = { onDynamicColor(false) }, modifier = Modifier.weight(1f))
                     BrSettingSwatch("系统色", selected = dynamicColor, onClick = { onDynamicColor(true) }, modifier = Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(BrDimens.GapSm)) {
+                    BrSettingSwatch("紫", selected = themePreset == "purple" && !dynamicColor, onClick = { onThemePreset("purple") }, modifier = Modifier.weight(1f))
+                    BrSettingSwatch("青", selected = themePreset == "teal" && !dynamicColor, onClick = { onThemePreset("teal") }, modifier = Modifier.weight(1f))
+                    BrSettingSwatch("蓝", selected = themePreset == "blue" && !dynamicColor, onClick = { onThemePreset("blue") }, modifier = Modifier.weight(1f))
+                    BrSettingSwatch("金", selected = themePreset == "amber" && !dynamicColor, onClick = { onThemePreset("amber") }, modifier = Modifier.weight(1f))
                 }
             }
             QuickEntryGrid(

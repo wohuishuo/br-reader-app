@@ -31,6 +31,7 @@ data class ReaderUiState(
     val aiResult: String? = null,
     val darkTheme: Boolean = true,
     val dynamicColor: Boolean = false,
+    val themePreset: String = "purple",
     val notice: String? = null,
 )
 
@@ -78,18 +79,18 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun openBookForReading(bookId: Long) = viewModelScope.launch {
-        val session = mutable.value.session
+        val session = uiState.value.session
         if (session.lastBookId == bookId && session.lastChapterId > 0) {
-            openChapter(bookId, session.lastChapterId)
+            openChapterDirect(bookId, session.lastChapterId)
             return@launch
         }
         mutable.value = mutable.value.copy(selectedBook = UiState.Loading, selectedChapter = null)
         runCatching { repository.bookDetail(bookId) }
             .onSuccess { detail ->
-                mutable.value = mutable.value.copy(selectedBook = UiState.Success(detail))
                 val firstChapter = detail.chapters.firstOrNull()
                 if (firstChapter != null) {
-                    openChapter(detail.id, firstChapter.id)
+                    mutable.value = mutable.value.copy(selectedBook = null)
+                    openChapterDirect(detail.id, firstChapter.id)
                 } else {
                     setNotice("这本书还没有章节")
                 }
@@ -108,7 +109,18 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun openChapter(bookId: Long, chapterId: Long) = viewModelScope.launch {
-        mutable.value = mutable.value.copy(selectedChapter = UiState.Loading)
+        openChapterInternal(bookId, chapterId, keepDetail = true)
+    }
+
+    private fun openChapterDirect(bookId: Long, chapterId: Long) = viewModelScope.launch {
+        openChapterInternal(bookId, chapterId, keepDetail = false)
+    }
+
+    private suspend fun openChapterInternal(bookId: Long, chapterId: Long, keepDetail: Boolean) {
+        mutable.value = mutable.value.copy(
+            selectedBook = if (keepDetail) mutable.value.selectedBook else null,
+            selectedChapter = UiState.Loading,
+        )
         runCatching { repository.chapterDetail(chapterId) }
             .onSuccess {
                 val userId = effectiveUserId()
@@ -153,6 +165,10 @@ class ReaderViewModel @Inject constructor(
         mutable.value = mutable.value.copy(dynamicColor = enabled)
     }
 
+    fun setThemePreset(preset: String) {
+        mutable.value = mutable.value.copy(themePreset = preset, dynamicColor = false)
+    }
+
     fun saveProgress(userId: Long, bookId: Long, chapterId: Long, paragraphIndex: Int) = viewModelScope.launch {
         repository.saveProgress(userId, bookId, chapterId, paragraphIndex)
     }
@@ -174,8 +190,7 @@ class ReaderViewModel @Inject constructor(
         mutable.value = mutable.value.copy(aiResult = "正在检索原文...")
         runCatching { repository.ask(chapter.bookId, chapter.id, question) }
             .onSuccess { answer ->
-                val refs = answer.references.take(2).joinToString("\n") { "第${it.paragraphSeq}段: ${it.content}" }
-                mutable.value = mutable.value.copy(aiResult = "${answer.answer}\n\n$refs")
+                mutable.value = mutable.value.copy(aiResult = answer.toReadableAnswer())
             }
             .onFailure { mutable.value = mutable.value.copy(aiResult = it.toUserMessage()) }
     }
@@ -189,11 +204,25 @@ class ReaderViewModel @Inject constructor(
     }
 
     private fun effectiveUserId(): Long {
-        val session = mutable.value.session
+        val session = uiState.value.session
         return when {
             session.userId > 0 -> session.userId
             session.token.isNotBlank() -> 1L
             else -> 0L
+        }
+    }
+
+    private fun com.bookrealm.reader.data.remote.dto.AiAskResponse.toReadableAnswer(): String {
+        val cited = references.take(3).joinToString("、") { "第${it.paragraphSeq}段" }.ifBlank { "暂无引用" }
+        val firstBasis = references.firstOrNull()?.content?.take(90).orEmpty()
+        val cleanAnswer = answer
+            .replace(Regex("已检索到.*?依据[:：]?"), "")
+            .trim()
+            .ifBlank { message.ifBlank { "暂时没有生成回答。" } }
+        return if (llmUsed) {
+            "$cleanAnswer\n\n依据：$cited"
+        } else {
+            "模型还没接入,先按原文给出可读结论：\n$cleanAnswer\n\n依据：$cited${if (firstBasis.isNotBlank()) "\n原文线索：$firstBasis..." else ""}"
         }
     }
 }
