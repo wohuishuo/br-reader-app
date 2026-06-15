@@ -8,15 +8,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +39,6 @@ import com.bookrealm.reader.core.UiState
 import com.bookrealm.reader.ui.component.StateBox
 import com.bookrealm.reader.ui.design.BrNavBar
 import com.bookrealm.reader.ui.design.BrNavItem
-import com.bookrealm.reader.ui.design.BrTopBar
 import com.bookrealm.reader.ui.screen.BookDetailScreen
 import com.bookrealm.reader.ui.screen.MeScreen
 import com.bookrealm.reader.ui.screen.ReaderScreen
@@ -105,30 +101,6 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
     }
 
     Scaffold(
-        topBar = {
-            if (!immersive) {
-                BrTopBar(
-                    title = currentRoute.title(),
-                    actions = {
-                        if (currentRoute == "shelf") {
-                            TextButton(onClick = {
-                                actions.closeBook()
-                                navController.navigate("store") {
-                                    popUpTo("shelf")
-                                    launchSingleTop = true
-                                }
-                            }) {
-                                Icon(Icons.Filled.Search, contentDescription = "找书")
-                                Text("找书")
-                            }
-                        }
-                        if (currentRoute == "me" && state.session.token.isNotBlank()) {
-                            TextButton(onClick = actions::logout) { Text("退出") }
-                        }
-                    }
-                )
-            }
-        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (!immersive) {
@@ -189,7 +161,13 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                             books = state.shelf,
                             session = state.session,
                             onOpen = actions::openBook,
-                            onGoStore = { navController.navigate("store") },
+                            onGoStore = {
+                                actions.closeBook()
+                                navController.navigate("store") {
+                                    popUpTo("shelf")
+                                    launchSingleTop = true
+                                }
+                            },
                         )
                     }
                     composable("store") {
@@ -206,18 +184,13 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                             account = state.session.account,
                             username = state.session.username,
                             onLogin = actions::login,
+                            onLogout = actions::logout,
                         )
                     }
                 }
             }
         }
     }
-}
-
-private fun String.title(): String = when (this) {
-    "store" -> "书城"
-    "me" -> "我的"
-    else -> "书架"
 }
 
 @Composable

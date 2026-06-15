@@ -25,8 +25,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.bookrealm.reader.ui.design.BrButton
 import com.bookrealm.reader.ui.design.BrDimens
 import com.bookrealm.reader.ui.design.BrTextField
+import com.bookrealm.reader.ui.design.InfoCard
 import com.bookrealm.reader.ui.design.QuickEntryGrid
-import com.bookrealm.reader.ui.design.SectionHeader
 
 @Composable
 fun MeScreen(
@@ -34,6 +34,7 @@ fun MeScreen(
     account: String,
     username: String,
     onLogin: (String, String) -> Unit,
+    onLogout: () -> Unit,
 ) {
     var userAccount by remember { mutableStateOf("root") }
     var password by remember { mutableStateOf("12345678") }
@@ -42,14 +43,11 @@ fun MeScreen(
         verticalArrangement = Arrangement.spacedBy(BrDimens.GapLg),
         horizontalAlignment = Alignment.Start,
     ) {
-        SectionHeader("我的")
         if (loggedIn) {
-            Card {
-                Column(Modifier.fillMaxWidth().padding(BrDimens.GapLg), verticalArrangement = Arrangement.spacedBy(BrDimens.GapSm)) {
-                    Text("已登录", color = MaterialTheme.colorScheme.primary)
-                    Text(username.ifBlank { account }, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("v2 后续会在这里放阅读统计、成就、导入任务和会员能力。")
-                }
+            InfoCard(title = username.ifBlank { account }) {
+                Text("已登录", color = MaterialTheme.colorScheme.primary)
+                Text("阅读统计、笔记、导入任务和设置从这里进入。", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                BrButton(text = "退出登录", onClick = onLogout, tonal = true)
             }
             QuickEntryGrid(
                 entries = listOf(
@@ -61,6 +59,7 @@ fun MeScreen(
                 onEntryClick = {},
             )
         } else {
+            Text("登录书域", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             BrTextField(value = userAccount, onValueChange = { userAccount = it }, label = "账号")
             BrTextField(
                 value = password,

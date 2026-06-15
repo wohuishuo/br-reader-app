@@ -112,7 +112,7 @@ fun ReaderScreen(
     onOpenChapter: (Long, Long) -> Unit,
 ) {
     var question by remember { mutableStateOf("仙石是什么") }
-    var controlsVisible by remember { mutableStateOf(true) }
+    var controlsVisible by remember { mutableStateOf(false) }
     var palette by remember { mutableStateOf(ReaderPalette.Paper) }
     var lineScale by remember { mutableFloatStateOf(1.0f) }
     var showToc by remember { mutableStateOf(false) }
@@ -160,17 +160,21 @@ fun ReaderScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().clickable {
-                        selectionStartSeq = null
-                        selectionEndSeq = null
-                        notePanelVisible = false
-                        controlsVisible = !controlsVisible
-                        if (!controlsVisible) aiExpanded = false
+                        if (selectionStartSeq != null) {
+                            selectionStartSeq = null
+                            selectionEndSeq = null
+                            notePanelVisible = false
+                        } else {
+                            val nextVisible = !controlsVisible
+                            controlsVisible = nextVisible
+                            if (!nextVisible) aiExpanded = false
+                        }
                     },
                     contentPadding = PaddingValues(
                         start = BrDimens.PagePaddingLarge,
-                        top = 112.dp,
+                        top = if (controlsVisible) 88.dp else 44.dp,
                         end = BrDimens.PagePaddingLarge,
-                        bottom = 128.dp,
+                        bottom = if (controlsVisible) 116.dp else 48.dp,
                     ),
                     verticalArrangement = Arrangement.spacedBy((14 * lineScale).dp),
                 ) {
@@ -267,44 +271,43 @@ fun ReaderScreen(
             }
         }
 
-        if (controlsVisible) {
-            if (selectedParagraphs.isNotEmpty()) {
-                SelectionToolbar(
-                    paragraphs = selectedParagraphs,
-                    noteDraft = noteDraft,
-                    notePanelVisible = notePanelVisible,
-                    onNoteChange = { noteDraft = it },
-                    onHighlight = {
-                        selectedParagraphs.forEach { onMark(it.id, it.seq, null) }
-                        selectionStartSeq = null
-                        selectionEndSeq = null
-                    },
-                    onCopy = {
-                        clipboard.setText(AnnotatedString(selectedParagraphs.joinToString("\n") { it.content }))
-                        Toast.makeText(context, "已复制 ${selectedParagraphs.size} 段", Toast.LENGTH_SHORT).show()
-                    },
-                    onToggleNote = { notePanelVisible = !notePanelVisible },
-                    onSaveNote = {
-                        selectedParagraphs.forEach { onMark(it.id, it.seq, noteDraft) }
-                        selectionStartSeq = null
-                        selectionEndSeq = null
-                    },
-                    onAsk = {
-                        val q = "解释这段话: ${selectedParagraphs.joinToString(" ") { it.content }.take(180)}"
-                        question = q
-                        aiExpanded = true
-                        onAsk(q)
-                        selectionStartSeq = null
-                        selectionEndSeq = null
-                    },
-                    onClose = {
-                        selectionStartSeq = null
-                        selectionEndSeq = null
-                        notePanelVisible = false
-                    },
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(start = 14.dp, end = 14.dp, bottom = 84.dp),
-                )
-            }
+        if (selectedParagraphs.isNotEmpty()) {
+            SelectionToolbar(
+                paragraphs = selectedParagraphs,
+                noteDraft = noteDraft,
+                notePanelVisible = notePanelVisible,
+                onNoteChange = { noteDraft = it },
+                onHighlight = {
+                    selectedParagraphs.forEach { onMark(it.id, it.seq, null) }
+                    selectionStartSeq = null
+                    selectionEndSeq = null
+                },
+                onCopy = {
+                    clipboard.setText(AnnotatedString(selectedParagraphs.joinToString("\n") { it.content }))
+                    Toast.makeText(context, "已复制 ${selectedParagraphs.size} 段", Toast.LENGTH_SHORT).show()
+                },
+                onToggleNote = { notePanelVisible = !notePanelVisible },
+                onSaveNote = {
+                    selectedParagraphs.forEach { onMark(it.id, it.seq, noteDraft) }
+                    selectionStartSeq = null
+                    selectionEndSeq = null
+                },
+                onAsk = {
+                    val q = "解释这段话: ${selectedParagraphs.joinToString(" ") { it.content }.take(180)}"
+                    question = q
+                    aiExpanded = true
+                    controlsVisible = true
+                    onAsk(q)
+                    selectionStartSeq = null
+                    selectionEndSeq = null
+                },
+                onClose = {
+                    selectionStartSeq = null
+                    selectionEndSeq = null
+                    notePanelVisible = false
+                },
+                modifier = Modifier.align(Alignment.BottomCenter).padding(start = 14.dp, end = 14.dp, bottom = 84.dp),
+            )
         }
     }
 }
@@ -511,17 +514,17 @@ private fun AiAskFullScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 22.dp, vertical = 14.dp),
+                .padding(horizontal = BrDimens.PagePaddingLarge, vertical = BrDimens.GapSm),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Box(Modifier.fillMaxWidth()) {
+            Box(Modifier.fillMaxWidth().height(64.dp)) {
                 IconButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterStart)) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "关闭 AI", tint = Color.White)
                 }
                 Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(title, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     if (subtitle.isNotBlank()) {
-                        Text("《$subtitle》", color = Color(0xFF8F8F8F), style = MaterialTheme.typography.bodyMedium)
+                        Text("《$subtitle》", color = Color(0xFF8F8F8F), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }

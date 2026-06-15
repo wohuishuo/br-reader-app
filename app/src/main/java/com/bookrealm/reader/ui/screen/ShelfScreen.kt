@@ -2,14 +2,26 @@ package com.bookrealm.reader.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import com.bookrealm.reader.data.local.BookCacheEntity
 import com.bookrealm.reader.data.local.SessionSnapshot
 import com.bookrealm.reader.ui.component.ShelfBookRow
 import com.bookrealm.reader.ui.design.BannerCard
 import com.bookrealm.reader.ui.design.BrDimens
+import com.bookrealm.reader.ui.design.BrShapes
 import com.bookrealm.reader.ui.design.MiniPlayerBar
 import com.bookrealm.reader.ui.design.SectionHeader
 
@@ -24,6 +36,9 @@ fun ShelfScreen(
         contentPadding = PaddingValues(BrDimens.PagePadding),
         verticalArrangement = Arrangement.spacedBy(BrDimens.GapLg),
     ) {
+        item {
+            SearchEntry(onClick = onGoStore)
+        }
         item {
             SectionHeader("继续阅读")
         }
@@ -56,6 +71,20 @@ fun ShelfScreen(
             items(books, key = { it.id }) { book ->
                 ShelfBookRow(book = book, isLast = book.id == session.lastBookId, onClick = { onOpen(book.id) })
             }
+        }
+    }
+}
+
+@Composable
+private fun SearchEntry(onClick: () -> Unit) {
+    Card(onClick = onClick, shape = BrShapes.Xl, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = BrDimens.GapLg, vertical = BrDimens.GapMd),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(BrDimens.GapSm),
+        ) {
+            Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Text("搜索书名、作者或关键词", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
