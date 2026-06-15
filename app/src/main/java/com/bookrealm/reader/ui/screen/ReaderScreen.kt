@@ -1,5 +1,6 @@
 package com.bookrealm.reader.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -68,6 +69,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -106,11 +110,25 @@ fun ReaderScreen(
     var showToc by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var aiExpanded by remember { mutableStateOf(false) }
-    var selectedParagraph by remember { mutableStateOf<ParagraphDto?>(null) }
+    var selectionStartSeq by remember { mutableStateOf<Int?>(null) }
+    var selectionEndSeq by remember { mutableStateOf<Int?>(null) }
     var notePanelVisible by remember { mutableStateOf(false) }
     var noteDraft by remember { mutableStateOf("") }
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val markedParagraphs = remember(marks) { marks.map { it.paragraphId }.toSet() }
+    val chapterData = (state as? UiState.Success)?.data
+    val selectedParagraphs = remember(selectionStartSeq, selectionEndSeq, chapterData?.paragraphs) {
+        val start = selectionStartSeq
+        val end = selectionEndSeq ?: start
+        if (start == null || end == null) {
+            emptyList()
+        } else {
+            val range = minOf(start, end)..maxOf(start, end)
+            chapterData?.paragraphs.orEmpty().filter { it.seq in range }
+        }
+    }
 
     BackHandler(enabled = aiExpanded) {
         aiExpanded = false
@@ -134,7 +152,8 @@ fun ReaderScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().clickable {
-                        selectedParagraph = null
+                        selectionStartSeq = null
+                        selectionEndSeq = null
                         notePanelVisible = false
                         controlsVisible = !controlsVisible
                         if (!controlsVisible) aiExpanded = false
@@ -145,19 +164,22 @@ fun ReaderScreen(
                     item {
                         Text(chapter.title, color = palette.foreground, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     }
-                    if (!aiResult.isNullOrBlank()) {
-                        item { AiResultCard(aiResult = aiResult) }
-                    }
                     items(chapter.paragraphs, key = { it.id }) { paragraph ->
                         ParagraphText(
                             paragraph = paragraph,
                             marked = paragraph.id in markedParagraphs,
-                            selected = selectedParagraph?.id == paragraph.id,
+                            selected = selectedParagraphs.any { it.id == paragraph.id },
                             palette = palette,
                             fontScale = fontScale,
                             lineScale = lineScale,
+                            onClick = {
+                                if (selectionStartSeq != null) {
+                                    selectionEndSeq = paragraph.seq
+                                }
+                            },
                             onLongClick = {
-                                selectedParagraph = paragraph
+                                selectionStartSeq = paragraph.seq
+                                selectionEndSeq = paragraph.seq
                                 notePanelVisible = false
                                 noteDraft = marks.firstOrNull { it.paragraphId == paragraph.id }?.note.orEmpty()
                             },
@@ -196,15 +218,20 @@ fun ReaderScreen(
 
         if (controlsVisible) {
             if (aiExpanded) {
-                AiAskPanel(
+                AiAskFullScreen(
+                    title = "AI 问书",
+                    subtitle = chapterData?.title.orEmpty(),
                     question = question,
                     onQuestion = { question = it },
                     aiResult = aiResult,
+                    onQuickAsk = {
+                        question = it
+                        onAsk(it)
+                    },
                     onClose = { aiExpanded = false },
                     onAsk = {
                         onAsk(question)
                     },
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 82.dp, start = 14.dp, end = 14.dp),
                 )
             } else {
                 AiAskButton(
@@ -228,30 +255,38 @@ fun ReaderScreen(
         }
 
         if (controlsVisible) {
-            selectedParagraph?.let { paragraph ->
+            if (selectedParagraphs.isNotEmpty()) {
                 SelectionToolbar(
-                    paragraph = paragraph,
+                    paragraphs = selectedParagraphs,
                     noteDraft = noteDraft,
                     notePanelVisible = notePanelVisible,
                     onNoteChange = { noteDraft = it },
                     onHighlight = {
-                        onMark(paragraph.id, paragraph.seq, null)
-                        selectedParagraph = null
+                        selectedParagraphs.forEach { onMark(it.id, it.seq, null) }
+                        selectionStartSeq = null
+                        selectionEndSeq = null
+                    },
+                    onCopy = {
+                        clipboard.setText(AnnotatedString(selectedParagraphs.joinToString("\n") { it.content }))
+                        Toast.makeText(context, "已复制 ${selectedParagraphs.size} 段", Toast.LENGTH_SHORT).show()
                     },
                     onToggleNote = { notePanelVisible = !notePanelVisible },
                     onSaveNote = {
-                        onMark(paragraph.id, paragraph.seq, noteDraft)
-                        selectedParagraph = null
+                        selectedParagraphs.forEach { onMark(it.id, it.seq, noteDraft) }
+                        selectionStartSeq = null
+                        selectionEndSeq = null
                     },
                     onAsk = {
-                        val q = "解释这段话: ${paragraph.content.take(80)}"
+                        val q = "解释这段话: ${selectedParagraphs.joinToString(" ") { it.content }.take(180)}"
                         question = q
                         aiExpanded = true
                         onAsk(q)
-                        selectedParagraph = null
+                        selectionStartSeq = null
+                        selectionEndSeq = null
                     },
                     onClose = {
-                        selectedParagraph = null
+                        selectionStartSeq = null
+                        selectionEndSeq = null
                         notePanelVisible = false
                     },
                     modifier = Modifier.align(Alignment.BottomCenter).padding(start = 14.dp, end = 14.dp, bottom = 84.dp),
@@ -263,11 +298,12 @@ fun ReaderScreen(
 
 @Composable
 private fun SelectionToolbar(
-    paragraph: ParagraphDto,
+    paragraphs: List<ParagraphDto>,
     noteDraft: String,
     notePanelVisible: Boolean,
     onNoteChange: (String) -> Unit,
     onHighlight: () -> Unit,
+    onCopy: () -> Unit,
     onToggleNote: () -> Unit,
     onSaveNote: () -> Unit,
     onAsk: () -> Unit,
@@ -279,7 +315,7 @@ private fun SelectionToolbar(
             Surface(shape = MaterialTheme.shapes.large, tonalElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("写想法", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(paragraph.content, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(paragraphs.joinToString("\n") { it.content }, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     OutlinedTextField(
                         value = noteDraft,
                         onValueChange = onNoteChange,
@@ -299,7 +335,7 @@ private fun SelectionToolbar(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SelectionTool(Icons.Filled.ContentCopy, "复制") {}
+                SelectionTool(Icons.Filled.ContentCopy, "复制", onCopy)
                 SelectionTool(Icons.Filled.Highlight, "划线", onHighlight)
                 SelectionTool(Icons.Filled.EditNote, "写想法", onToggleNote)
                 SelectionTool(Icons.Filled.Psychology, "AI 问书", onAsk)
@@ -329,6 +365,7 @@ private fun ParagraphText(
     palette: ReaderPalette,
     fontScale: Float,
     lineScale: Float,
+    onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
     Text(
@@ -341,7 +378,7 @@ private fun ParagraphText(
                     else -> Color.Transparent
                 }
             )
-            .combinedClickable(onClick = {}, onLongClick = onLongClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 2.dp),
         color = palette.foreground,
         style = MaterialTheme.typography.bodyLarge.copy(
@@ -464,36 +501,80 @@ private fun AiAskButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AiAskPanel(
+private fun AiAskFullScreen(
+    title: String,
+    subtitle: String,
     question: String,
     aiResult: String?,
     onQuestion: (String) -> Unit,
+    onQuickAsk: (String) -> Unit,
     onClose: () -> Unit,
     onAsk: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    Surface(modifier = modifier.fillMaxWidth().navigationBarsPadding(), shape = MaterialTheme.shapes.large, tonalElevation = 6.dp) {
-        Column(Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("问问原文", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                IconButton(onClick = onClose) {
-                    Icon(Icons.Filled.Close, contentDescription = "收起 AI")
+    Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 22.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Box(Modifier.fillMaxWidth()) {
+                IconButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterStart)) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "关闭 AI", tint = Color.White)
+                }
+                Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(title, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    if (subtitle.isNotBlank()) {
+                        Text("《$subtitle》", color = Color(0xFF8F8F8F), style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             }
-            if (!aiResult.isNullOrBlank()) {
-                AiResultCard(aiResult = aiResult)
-                Spacer(Modifier.height(8.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                if (!aiResult.isNullOrBlank()) {
+                    Surface(shape = MaterialTheme.shapes.large, color = Color(0xFF171717)) {
+                        Text(aiResult, modifier = Modifier.padding(16.dp), color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                listOf(
+                    "这段话的重点是什么?",
+                    "用三句话总结本章",
+                    "列出关键概念",
+                ).forEach { prompt ->
+                    Surface(
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = Color.Transparent,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF333333)),
+                        modifier = Modifier.clickable { onQuickAsk(prompt) },
+                    ) {
+                        Text(prompt, modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp), color = Color(0xFFD8D8D8))
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    listOf("书籍亮点", "背景解读", "关键概念").forEach { chip ->
+                        Button(onClick = { onQuickAsk(chip) }, modifier = Modifier.weight(1f)) {
+                            Text(chip)
+                        }
+                    }
+                }
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = question,
-                onValueChange = onQuestion,
-                label = { Text("问一句") },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(8.dp))
-            Button(onClick = onAsk) { Text("问") }
+
+            Surface(shape = MaterialTheme.shapes.extraLarge, color = Color(0xFF1D1D1D)) {
+                Row(Modifier.padding(start = 16.dp, top = 8.dp, end = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = question,
+                        onValueChange = onQuestion,
+                        placeholder = { Text("针对本书提出你的问题") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    FloatingActionButton(onClick = onAsk, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "发送")
+                    }
+                }
             }
         }
     }
