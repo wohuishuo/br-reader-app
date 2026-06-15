@@ -52,6 +52,7 @@ app/src/main/java/com/bookrealm/reader/
 - `BrColors` / `BrDimens` / `BrShapes` / `BrMotion`:统一颜色、间距、圆角和动效参数。
 - `BrTopBar` / `BrNavBar` / `BrNavItem`:普通页面统一顶栏和底部导航。
 - `BrReaderTopSurface` / `BrReaderBottomSurface`:阅读器和沉浸页统一系统栏避让与工具层容器。
+- `SectionHeader` / `SearchField` / `BrButton` / `BannerCard` / `QuickEntryGrid` / `EntryCard` / `MiniPlayerBar`:页面区块、搜索、按钮、入口卡片、播放条统一组件。
 
 旧 `ReaderTokens` 已降级为兼容层,真实值来自 `ui/design`。
 

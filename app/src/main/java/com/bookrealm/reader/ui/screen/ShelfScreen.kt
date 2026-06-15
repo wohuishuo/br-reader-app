@@ -24,6 +24,9 @@ import com.bookrealm.reader.data.local.BookCacheEntity
 import com.bookrealm.reader.data.local.SessionSnapshot
 import com.bookrealm.reader.ui.component.BookCover
 import com.bookrealm.reader.ui.component.ShelfBookRow
+import com.bookrealm.reader.ui.design.BannerCard
+import com.bookrealm.reader.ui.design.BrButton
+import com.bookrealm.reader.ui.design.SectionHeader
 import com.bookrealm.reader.ui.theme.ReaderTokens
 
 @Composable
@@ -38,7 +41,7 @@ fun ShelfScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            Text("继续阅读", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            SectionHeader("继续阅读")
         }
         item {
             val last = books.firstOrNull { it.id == session.lastBookId } ?: books.firstOrNull()
@@ -54,7 +57,7 @@ fun ShelfScreen(
             }
         }
         item {
-            Text("我的书架", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            SectionHeader("我的书架")
         }
         if (books.isEmpty()) {
             item {
@@ -99,11 +102,5 @@ private fun ContinueReadingCard(book: BookCacheEntity, session: SessionSnapshot,
 
 @Composable
 private fun EmptyCard(title: String, body: String, action: String, onAction: () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            FilledTonalButton(onClick = onAction) { Text(action) }
-        }
-    }
+    BannerCard(title = title, body = body, action = action, onAction = onAction)
 }
