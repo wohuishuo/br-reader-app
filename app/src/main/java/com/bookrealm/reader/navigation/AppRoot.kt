@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -107,9 +108,21 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
         topBar = {
             if (!immersive) {
                 TopAppBar(
-                    title = { Text("书域阅读") },
+                    title = { Text(currentRoute.title()) },
                     actions = {
-                        if (state.session.token.isNotBlank()) {
+                        if (currentRoute == "shelf") {
+                            TextButton(onClick = {
+                                actions.closeBook()
+                                navController.navigate("store") {
+                                    popUpTo("shelf")
+                                    launchSingleTop = true
+                                }
+                            }) {
+                                Icon(Icons.Filled.Search, contentDescription = "找书")
+                                Text("找书")
+                            }
+                        }
+                        if (currentRoute == "me" && state.session.token.isNotBlank()) {
                             TextButton(onClick = actions::logout) { Text("退出") }
                         }
                     }
@@ -124,6 +137,7 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                         NavigationBarItem(
                             selected = currentRoute == tab.route,
                             onClick = {
+                                actions.closeBook()
                                 navController.navigate(tab.route) {
                                     popUpTo("shelf")
                                     launchSingleTop = true
@@ -196,6 +210,12 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
             }
         }
     }
+}
+
+private fun String.title(): String = when (this) {
+    "store" -> "书城"
+    "me" -> "我的"
+    else -> "书架"
 }
 
 @Composable

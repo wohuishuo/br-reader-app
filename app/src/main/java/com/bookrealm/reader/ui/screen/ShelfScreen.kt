@@ -15,7 +15,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,11 +54,7 @@ fun ShelfScreen(
             }
         }
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("我的书架", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onGoStore) { Text("找书") }
-            }
+            Text("我的书架", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         }
         if (books.isEmpty()) {
             item {

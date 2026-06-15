@@ -2,18 +2,21 @@ package com.bookrealm.reader.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +26,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FormatLineSpacing
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Nightlight
@@ -38,6 +42,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +58,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -92,6 +98,10 @@ fun ReaderScreen(
     var aiExpanded by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    BackHandler(enabled = aiExpanded) {
+        aiExpanded = false
+    }
+
     Box(Modifier.fillMaxSize().background(palette.background)) {
         when (state) {
             UiState.Loading -> LoadingBox()
@@ -113,7 +123,7 @@ fun ReaderScreen(
                         controlsVisible = !controlsVisible
                         if (!controlsVisible) aiExpanded = false
                     },
-                    contentPadding = PaddingValues(start = 22.dp, top = 88.dp, end = 22.dp, bottom = 110.dp),
+                    contentPadding = PaddingValues(start = 22.dp, top = 112.dp, end = 22.dp, bottom = 128.dp),
                     verticalArrangement = Arrangement.spacedBy((14 * lineScale).dp),
                 ) {
                     item {
@@ -162,12 +172,13 @@ fun ReaderScreen(
 
         if (controlsVisible) {
             if (aiExpanded) {
-                AiAskBar(
+                AiAskPanel(
                     question = question,
                     onQuestion = { question = it },
+                    aiResult = aiResult,
+                    onClose = { aiExpanded = false },
                     onAsk = {
                         onAsk(question)
-                        aiExpanded = false
                     },
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 82.dp, start = 14.dp, end = 14.dp),
                 )
@@ -196,8 +207,16 @@ fun ReaderScreen(
 
 @Composable
 private fun ReaderTopBar(title: String, palette: ReaderPalette, onBack: () -> Unit) {
-    Surface(color = palette.background.copy(alpha = 0.96f), shadowElevation = 2.dp) {
-        Row(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Surface(color = palette.background.copy(alpha = 0.92f), shadowElevation = 0.dp) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .displayCutoutPadding()
+                .height(58.dp)
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "返回", tint = palette.foreground) }
             Text(title, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, color = palette.foreground)
             IconButton(onClick = {}) { Icon(Icons.Filled.MoreVert, contentDescription = "更多", tint = palette.foreground) }
@@ -214,9 +233,11 @@ private fun ReaderBottomBar(
     onListen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(modifier = modifier.fillMaxWidth().navigationBarsPadding(), color = palette.background.copy(alpha = 0.97f), shadowElevation = 6.dp) {
+    Surface(modifier = modifier.fillMaxWidth().navigationBarsPadding(), color = palette.background.copy(alpha = 0.90f), shadowElevation = 0.dp) {
+        Column {
+            HorizontalDivider(color = palette.muted.copy(alpha = 0.22f))
         Row(
-            Modifier.fillMaxWidth().height(72.dp).padding(horizontal = 8.dp),
+            Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -224,6 +245,7 @@ private fun ReaderBottomBar(
             ReaderTool(Icons.Filled.Palette, "设置", palette, onSettings)
             ReaderTool(Icons.Filled.Psychology, "摘要", palette, onSummary)
             ReaderTool(Icons.Filled.Headphones, "听", palette, onListen)
+        }
         }
     }
 }
@@ -296,9 +318,27 @@ private fun AiAskButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AiAskBar(question: String, onQuestion: (String) -> Unit, onAsk: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(modifier = modifier.fillMaxWidth().navigationBarsPadding(), shape = MaterialTheme.shapes.large, tonalElevation = 4.dp) {
-        Row(Modifier.padding(start = 14.dp, top = 6.dp, end = 8.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun AiAskPanel(
+    question: String,
+    aiResult: String?,
+    onQuestion: (String) -> Unit,
+    onClose: () -> Unit,
+    onAsk: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(modifier = modifier.fillMaxWidth().navigationBarsPadding(), shape = MaterialTheme.shapes.large, tonalElevation = 6.dp) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("问问原文", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                IconButton(onClick = onClose) {
+                    Icon(Icons.Filled.Close, contentDescription = "收起 AI")
+                }
+            }
+            if (!aiResult.isNullOrBlank()) {
+                AiResultCard(aiResult = aiResult)
+                Spacer(Modifier.height(8.dp))
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = question,
                 onValueChange = onQuestion,
@@ -308,6 +348,7 @@ private fun AiAskBar(question: String, onQuestion: (String) -> Unit, onAsk: () -
             )
             Spacer(Modifier.width(8.dp))
             Button(onClick = onAsk) { Text("问") }
+            }
         }
     }
 }
