@@ -29,6 +29,8 @@ data class ReaderUiState(
     val chapterMarks: List<MarkItemDto> = emptyList(),
     val query: String = "",
     val aiResult: String? = null,
+    val darkTheme: Boolean = true,
+    val dynamicColor: Boolean = false,
     val notice: String? = null,
 )
 
@@ -52,7 +54,7 @@ class ReaderViewModel @Inject constructor(
 
     fun login(account: String, password: String) = viewModelScope.launch {
         runCatching { repository.login(account, password) }
-            .onSuccess { setNotice("登录成功，欢迎回到书域") }
+            .onSuccess { setNotice("登录成功") }
             .onFailure { setNotice(it.toUserMessage()) }
     }
 
@@ -72,6 +74,26 @@ class ReaderViewModel @Inject constructor(
         mutable.value = mutable.value.copy(selectedBook = UiState.Loading, selectedChapter = null)
         runCatching { repository.bookDetail(bookId) }
             .onSuccess { mutable.value = mutable.value.copy(selectedBook = UiState.Success(it)) }
+            .onFailure { mutable.value = mutable.value.copy(selectedBook = UiState.Error(it.toUserMessage())) }
+    }
+
+    fun openBookForReading(bookId: Long) = viewModelScope.launch {
+        val session = mutable.value.session
+        if (session.lastBookId == bookId && session.lastChapterId > 0) {
+            openChapter(bookId, session.lastChapterId)
+            return@launch
+        }
+        mutable.value = mutable.value.copy(selectedBook = UiState.Loading, selectedChapter = null)
+        runCatching { repository.bookDetail(bookId) }
+            .onSuccess { detail ->
+                mutable.value = mutable.value.copy(selectedBook = UiState.Success(detail))
+                val firstChapter = detail.chapters.firstOrNull()
+                if (firstChapter != null) {
+                    openChapter(detail.id, firstChapter.id)
+                } else {
+                    setNotice("这本书还没有章节")
+                }
+            }
             .onFailure { mutable.value = mutable.value.copy(selectedBook = UiState.Error(it.toUserMessage())) }
     }
 
@@ -121,6 +143,14 @@ class ReaderViewModel @Inject constructor(
 
     fun setFontScale(scale: Float) = viewModelScope.launch {
         repository.saveFontScale(scale)
+    }
+
+    fun setDarkTheme(enabled: Boolean) {
+        mutable.value = mutable.value.copy(darkTheme = enabled)
+    }
+
+    fun setDynamicColor(enabled: Boolean) {
+        mutable.value = mutable.value.copy(dynamicColor = enabled)
     }
 
     fun saveProgress(userId: Long, bookId: Long, chapterId: Long, paragraphIndex: Int) = viewModelScope.launch {

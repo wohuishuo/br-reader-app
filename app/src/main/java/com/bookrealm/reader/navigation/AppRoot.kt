@@ -60,7 +60,9 @@ private val tabs = listOf(
 @Composable
 fun AppRoot(viewModel: ReaderViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    AppRootContent(state, viewModel)
+    ReaderTheme(darkTheme = state.darkTheme, dynamicColor = state.dynamicColor) {
+        AppRootContent(state, viewModel)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,7 +97,7 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
             System.currentTimeMillis() - lastShelfBackAt < 1800 -> activity?.finish()
             else -> {
                 lastShelfBackAt = System.currentTimeMillis()
-                scope.launch { snackbarHostState.showSnackbar("再按一次退出书域") }
+                scope.launch { snackbarHostState.showSnackbar("再按一次退出") }
             }
         }
     }
@@ -147,6 +149,7 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                 BookDetailScreen(
                     state = state.selectedBook,
                     session = state.session,
+                    isInShelf = selectedBookId != null && state.shelf.any { it.id == selectedBookId },
                     onBack = actions::closeBook,
                     onRetry = { selectedBookId?.let(actions::openBook) },
                     onAddShelf = actions::addToShelf,
@@ -161,6 +164,7 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                             books = state.shelf,
                             session = state.session,
                             onOpen = actions::openBook,
+                            onRead = actions::openBookForReading,
                             onGoStore = {
                                 actions.closeBook()
                                 navController.navigate("store") {
@@ -183,8 +187,12 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                             loggedIn = state.session.token.isNotBlank(),
                             account = state.session.account,
                             username = state.session.username,
+                            darkTheme = state.darkTheme,
+                            dynamicColor = state.dynamicColor,
                             onLogin = actions::login,
                             onLogout = actions::logout,
+                            onDarkTheme = actions::setDarkTheme,
+                            onDynamicColor = actions::setDynamicColor,
                         )
                     }
                 }
@@ -224,6 +232,6 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
 @Composable
 private fun AppRootPreview() {
     ReaderTheme {
-        StateBox("书域阅读", "v2.1 第二轮把页面、组件和状态层拆清楚。")
+        StateBox("阅读", "页面、组件和状态层已经拆清楚。")
     }
 }

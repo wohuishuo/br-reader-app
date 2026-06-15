@@ -127,6 +127,11 @@ fun ReaderScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val markedParagraphs = remember(marks) { marks.map { it.paragraphId }.toSet() }
     val chapterData = (state as? UiState.Success)?.data
+    fun toggleControls() {
+        val nextVisible = !controlsVisible
+        controlsVisible = nextVisible
+        if (!nextVisible) aiExpanded = false
+    }
     val selectedParagraphs = remember(selectionStartSeq, selectionEndSeq, chapterData?.paragraphs) {
         val start = selectionStartSeq
         val end = selectionEndSeq ?: start
@@ -165,9 +170,7 @@ fun ReaderScreen(
                             selectionEndSeq = null
                             notePanelVisible = false
                         } else {
-                            val nextVisible = !controlsVisible
-                            controlsVisible = nextVisible
-                            if (!nextVisible) aiExpanded = false
+                            toggleControls()
                         }
                     },
                     contentPadding = PaddingValues(
@@ -192,6 +195,8 @@ fun ReaderScreen(
                             onClick = {
                                 if (selectionStartSeq != null) {
                                     selectionEndSeq = paragraph.seq
+                                } else {
+                                    toggleControls()
                                 }
                             },
                             onLongClick = {
@@ -210,10 +215,6 @@ fun ReaderScreen(
                         palette = palette,
                         onToc = { showToc = true },
                         onSettings = { showSettings = true },
-                        onSummary = {
-                            aiExpanded = true
-                            onSummary()
-                        },
                         onListen = { question = "请朗读当前章节"; onAsk("请用一句话说明本章适合怎样朗读") },
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
@@ -233,29 +234,30 @@ fun ReaderScreen(
             }
         }
 
-        if (controlsVisible) {
-            if (aiExpanded) {
-                AiAskFullScreen(
-                    title = "AI 问书",
-                    subtitle = chapterData?.title.orEmpty(),
-                    question = question,
-                    onQuestion = { question = it },
-                    aiResult = aiResult,
-                    onQuickAsk = {
-                        question = it
-                        onAsk(it)
-                    },
-                    onClose = { aiExpanded = false },
-                    onAsk = {
-                        onAsk(question)
-                    },
-                )
-            } else {
-                AiAskButton(
-                    onClick = { aiExpanded = true },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 18.dp, bottom = 92.dp),
-                )
-            }
+        if (aiExpanded) {
+            AiAskFullScreen(
+                title = "AI 问书",
+                subtitle = chapterData?.title.orEmpty(),
+                question = question,
+                onQuestion = { question = it },
+                aiResult = aiResult,
+                onSummary = onSummary,
+                onQuickAsk = {
+                    question = it
+                    onAsk(it)
+                },
+                onClose = { aiExpanded = false },
+                onAsk = {
+                    onAsk(question)
+                },
+            )
+        } else if (selectedParagraphs.isEmpty()) {
+            AiAskButton(
+                onClick = { aiExpanded = true },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 18.dp, bottom = if (controlsVisible) 92.dp else 28.dp),
+            )
         }
 
         if (showSettings) {
@@ -390,7 +392,7 @@ private fun ParagraphText(
 
 @Composable
 private fun ReaderTopBar(title: String, palette: ReaderPalette, onBack: () -> Unit) {
-    BrReaderTopSurface {
+    BrReaderTopSurface(containerColor = palette.background) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -410,12 +412,11 @@ private fun ReaderBottomBar(
     palette: ReaderPalette,
     onToc: () -> Unit,
     onSettings: () -> Unit,
-    onSummary: () -> Unit,
     onListen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier) {
-        BrReaderBottomSurface {
+        BrReaderBottomSurface(containerColor = palette.background) {
         Row(
             Modifier.fillMaxWidth().height(BrDimens.ReaderBottomBarHeight).padding(horizontal = BrDimens.GapSm),
             horizontalArrangement = Arrangement.SpaceAround,
@@ -423,7 +424,6 @@ private fun ReaderBottomBar(
         ) {
             ReaderTool(Icons.AutoMirrored.Filled.MenuBook, "目录", palette, onToc)
             ReaderTool(Icons.Filled.Palette, "设置", palette, onSettings)
-            ReaderTool(Icons.Filled.Psychology, "摘要", palette, onSummary)
             ReaderTool(Icons.Filled.Headphones, "听", palette, onListen)
         }
         }
@@ -504,6 +504,7 @@ private fun AiAskFullScreen(
     question: String,
     aiResult: String?,
     onQuestion: (String) -> Unit,
+    onSummary: () -> Unit,
     onQuickAsk: (String) -> Unit,
     onClose: () -> Unit,
     onAsk: () -> Unit,
@@ -515,36 +516,52 @@ private fun AiAskFullScreen(
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .padding(horizontal = BrDimens.PagePaddingLarge, vertical = BrDimens.GapSm),
-            verticalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(BrDimens.GapMd),
         ) {
-            Box(Modifier.fillMaxWidth().height(64.dp)) {
-                IconButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterStart)) {
+            Row(
+                Modifier.fillMaxWidth().height(48.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onClose) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "关闭 AI", tint = Color.White)
                 }
-                Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     if (subtitle.isNotBlank()) {
                         Text("《$subtitle》", color = Color(0xFF8F8F8F), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
+                Spacer(Modifier.width(BrDimens.IconButton))
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                if (!aiResult.isNullOrBlank()) {
-                    Surface(shape = BrShapes.Lg, color = BrColors.AiSurface) {
-                        Text(aiResult, modifier = Modifier.padding(16.dp), color = Color.White, style = MaterialTheme.typography.bodyMedium)
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(BrDimens.GapMd),
+            ) {
+                item {
+                    if (!aiResult.isNullOrBlank()) {
+                        Surface(shape = BrShapes.Lg, color = BrColors.AiSurface) {
+                            Text(aiResult, modifier = Modifier.padding(16.dp), color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                        }
                     }
                 }
-                listOf(
-                    "这段话的重点是什么?",
-                    "用三句话总结本章",
-                    "列出关键概念",
-                ).forEach { prompt ->
-                    AiPromptChip(text = prompt, onClick = { onQuickAsk(prompt) })
+                item {
+                    AiPromptChip(text = "生成本章摘要", onClick = onSummary)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    listOf("书籍亮点", "背景解读", "关键概念").forEach { chip ->
-                        BrButton(text = chip, onClick = { onQuickAsk(chip) }, modifier = Modifier.weight(1f), tonal = true)
+                items(
+                    listOf(
+                        "这段话的重点是什么?",
+                        "用三句话总结本章",
+                        "列出关键概念",
+                    )
+                ) { prompt ->
+                    AiPromptChip(text = prompt, onClick = { onQuickAsk(prompt) }, modifier = Modifier.fillMaxWidth())
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        listOf("亮点", "背景", "概念").forEach { chip ->
+                            BrButton(text = chip, onClick = { onQuickAsk(chip) }, modifier = Modifier.weight(1f), tonal = true)
+                        }
                     }
                 }
             }

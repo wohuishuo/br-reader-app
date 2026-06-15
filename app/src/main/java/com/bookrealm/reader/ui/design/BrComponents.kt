@@ -3,6 +3,10 @@ package com.bookrealm.reader.ui.design
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -32,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 
@@ -59,16 +64,52 @@ fun SearchField(
     modifier: Modifier = Modifier,
     placeholder: String = "搜索",
 ) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text(placeholder) },
-            singleLine = true,
-            modifier = Modifier.weight(1f),
-        )
-        IconButton(onClick = onSearch) {
-            Icon(Icons.Filled.Search, contentDescription = "搜索")
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = BrShapes.Xl,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Row(
+            Modifier.padding(start = BrDimens.GapLg, end = BrDimens.GapSm, top = BrDimens.GapMd, bottom = BrDimens.GapMd),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(BrDimens.GapSm))
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (value.isBlank()) {
+                    Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            IconButton(onClick = onSearch) {
+                Icon(Icons.Filled.Search, contentDescription = "搜索")
+            }
+        }
+    }
+}
+
+@Composable
+fun SearchEntryCard(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(onClick = onClick, shape = BrShapes.Xl, modifier = modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = BrDimens.GapLg, vertical = BrDimens.GapMd),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(BrDimens.GapSm),
+        ) {
+            Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -103,6 +144,7 @@ fun BrButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     tonal: Boolean = false,
+    enabled: Boolean = true,
     icon: @Composable (() -> Unit)? = null,
 ) {
     val content: @Composable RowScope.() -> Unit = {
@@ -113,9 +155,9 @@ fun BrButton(
         Text(text)
     }
     if (tonal) {
-        FilledTonalButton(onClick = onClick, modifier = modifier, content = content)
+        FilledTonalButton(onClick = onClick, enabled = enabled, modifier = modifier, content = content)
     } else {
-        Button(onClick = onClick, modifier = modifier, content = content)
+        Button(onClick = onClick, enabled = enabled, modifier = modifier, content = content)
     }
 }
 
@@ -234,6 +276,27 @@ fun BrActionDock(
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )
+    }
+}
+
+@Composable
+fun BrSettingSwatch(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = BrShapes.Md,
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Box(Modifier.fillMaxWidth().padding(BrDimens.GapMd), contentAlignment = Alignment.Center) {
+            Text(label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+        }
     }
 }
 

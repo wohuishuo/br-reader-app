@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +42,7 @@ import com.bookrealm.reader.ui.design.InfoCard
 fun BookDetailScreen(
     state: UiState<BookDetailDto>,
     session: SessionSnapshot,
+    isInShelf: Boolean,
     onBack: () -> Unit,
     onRetry: () -> Unit,
     onAddShelf: (BookDetailDto) -> Unit,
@@ -80,10 +82,16 @@ fun BookDetailScreen(
                                 icon = { Icon(Icons.Filled.AutoStories, contentDescription = null) },
                             )
                             BrButton(
-                                text = "加入书架",
-                                onClick = { onAddShelf(book) },
+                                text = if (isInShelf) "已在书架" else "加入书架",
+                                onClick = { if (!isInShelf) onAddShelf(book) },
                                 tonal = true,
-                                icon = { Icon(Icons.Filled.BookmarkAdd, contentDescription = null) },
+                                enabled = !isInShelf,
+                                icon = {
+                                    Icon(
+                                        if (isInShelf) Icons.Filled.CheckCircle else Icons.Filled.BookmarkAdd,
+                                        contentDescription = null,
+                                    )
+                                },
                             )
                         }
                     }

@@ -19,6 +19,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -98,10 +99,13 @@ fun BrScaffold(
 }
 
 @Composable
-fun BrReaderTopSurface(content: @Composable () -> Unit) {
+fun BrReaderTopSurface(
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    content: @Composable () -> Unit,
+) {
     androidx.compose.material3.Surface(
-        color = androidx.compose.ui.graphics.Color.Transparent,
-        shadowElevation = 0.dp,
+        color = containerColor,
+        shadowElevation = 3.dp,
     ) {
         Column(
             Modifier
@@ -115,11 +119,14 @@ fun BrReaderTopSurface(content: @Composable () -> Unit) {
 }
 
 @Composable
-fun BrReaderBottomSurface(content: @Composable () -> Unit) {
+fun BrReaderBottomSurface(
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    content: @Composable () -> Unit,
+) {
     androidx.compose.material3.Surface(
         modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
-        color = androidx.compose.ui.graphics.Color.Transparent,
-        shadowElevation = 0.dp,
+        color = containerColor,
+        shadowElevation = 3.dp,
     ) {
         Column {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
