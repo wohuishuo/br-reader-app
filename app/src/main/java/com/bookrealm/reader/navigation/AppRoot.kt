@@ -1,11 +1,16 @@
 package com.bookrealm.reader.navigation
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -14,13 +19,21 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -37,6 +50,7 @@ import com.bookrealm.reader.ui.screen.StoreScreen
 import com.bookrealm.reader.ui.theme.ReaderTheme
 import com.bookrealm.reader.viewmodel.ReaderUiState
 import com.bookrealm.reader.viewmodel.ReaderViewModel
+import kotlinx.coroutines.launch
 
 private data class Tab(val route: String, val label: String, val icon: @Composable () -> Unit)
 
@@ -59,6 +73,9 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route ?: "shelf"
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val activity = LocalContext.current.findActivity()
+    var lastShelfBackAt by remember { mutableLongStateOf(0L) }
 
     LaunchedEffect(state.notice) {
         state.notice?.let {
@@ -68,6 +85,23 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
     }
 
     val immersive = state.selectedChapter != null
+    SystemBarsEffect(immersive = immersive)
+
+    BackHandler {
+        when {
+            state.selectedChapter != null -> actions.closeChapter()
+            state.selectedBook != null -> actions.closeBook()
+            currentRoute != "shelf" -> navController.navigate("shelf") {
+                popUpTo("shelf")
+                launchSingleTop = true
+            }
+            System.currentTimeMillis() - lastShelfBackAt < 1800 -> activity?.finish()
+            else -> {
+                lastShelfBackAt = System.currentTimeMillis()
+                scope.launch { snackbarHostState.showSnackbar("再按一次退出书域") }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -162,6 +196,33 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
             }
         }
     }
+}
+
+@Composable
+private fun SystemBarsEffect(immersive: Boolean) {
+    val view = LocalView.current
+    val activity = view.context.findActivity() ?: return
+
+    DisposableEffect(immersive) {
+        WindowCompat.setDecorFitsSystemWindows(activity.window, !immersive)
+        val controller = WindowInsetsControllerCompat(activity.window, view)
+        if (immersive) {
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.statusBars())
+        } else {
+            controller.show(WindowInsetsCompat.Type.statusBars())
+        }
+        onDispose {
+            WindowCompat.setDecorFitsSystemWindows(activity.window, true)
+            controller.show(WindowInsetsCompat.Type.statusBars())
+        }
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 @Preview(showBackground = true)

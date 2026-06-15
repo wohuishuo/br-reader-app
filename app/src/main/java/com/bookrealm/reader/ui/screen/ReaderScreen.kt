@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,6 +37,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -87,6 +89,7 @@ fun ReaderScreen(
     var lineScale by remember { mutableFloatStateOf(1.0f) }
     var showToc by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var aiExpanded by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Box(Modifier.fillMaxSize().background(palette.background)) {
@@ -106,7 +109,10 @@ fun ReaderScreen(
                 }
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize().clickable { controlsVisible = !controlsVisible },
+                    modifier = Modifier.fillMaxSize().clickable {
+                        controlsVisible = !controlsVisible
+                        if (!controlsVisible) aiExpanded = false
+                    },
                     contentPadding = PaddingValues(start = 22.dp, top = 88.dp, end = 22.dp, bottom = 110.dp),
                     verticalArrangement = Arrangement.spacedBy((14 * lineScale).dp),
                 ) {
@@ -155,12 +161,22 @@ fun ReaderScreen(
         }
 
         if (controlsVisible) {
-            AiAskBar(
-                question = question,
-                onQuestion = { question = it },
-                onAsk = { onAsk(question) },
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 74.dp, start = 14.dp, end = 14.dp),
-            )
+            if (aiExpanded) {
+                AiAskBar(
+                    question = question,
+                    onQuestion = { question = it },
+                    onAsk = {
+                        onAsk(question)
+                        aiExpanded = false
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 82.dp, start = 14.dp, end = 14.dp),
+                )
+            } else {
+                AiAskButton(
+                    onClick = { aiExpanded = true },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 18.dp, bottom = 92.dp),
+                )
+            }
         }
 
         if (showSettings) {
@@ -198,7 +214,7 @@ private fun ReaderBottomBar(
     onListen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(modifier = modifier.fillMaxWidth(), color = palette.background.copy(alpha = 0.97f), shadowElevation = 6.dp) {
+    Surface(modifier = modifier.fillMaxWidth().navigationBarsPadding(), color = palette.background.copy(alpha = 0.97f), shadowElevation = 6.dp) {
         Row(
             Modifier.fillMaxWidth().height(72.dp).padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround,
@@ -273,8 +289,15 @@ private fun ChapterToc(chapters: List<ChapterItemDto>, onOpen: (Long) -> Unit) {
 }
 
 @Composable
+private fun AiAskButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FloatingActionButton(onClick = onClick, modifier = modifier) {
+        Icon(Icons.Filled.Psychology, contentDescription = "AI 提问")
+    }
+}
+
+@Composable
 private fun AiAskBar(question: String, onQuestion: (String) -> Unit, onAsk: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, tonalElevation = 4.dp) {
+    Surface(modifier = modifier.fillMaxWidth().navigationBarsPadding(), shape = MaterialTheme.shapes.large, tonalElevation = 4.dp) {
         Row(Modifier.padding(start = 14.dp, top = 6.dp, end = 8.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = question,
