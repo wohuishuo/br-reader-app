@@ -7,12 +7,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Login
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,9 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
 import com.bookrealm.reader.ui.design.BrButton
 import com.bookrealm.reader.ui.design.BrDimens
+import com.bookrealm.reader.ui.design.BrTextField
 import com.bookrealm.reader.ui.design.QuickEntryGrid
 import com.bookrealm.reader.ui.design.SectionHeader
 
@@ -62,17 +61,17 @@ fun MeScreen(
                 onEntryClick = {},
             )
         } else {
-            OutlinedTextField(value = userAccount, onValueChange = { userAccount = it }, label = { Text("账号") })
-            OutlinedTextField(
+            BrTextField(value = userAccount, onValueChange = { userAccount = it }, label = "账号")
+            BrTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("密码") },
+                label = "密码",
                 visualTransformation = PasswordVisualTransformation(),
             )
             BrButton(
                 text = "登录",
                 onClick = { onLogin(userAccount, password) },
-                icon = { Icon(Icons.Filled.Login, contentDescription = null) },
+                icon = { Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null) },
             )
             Text("默认演示账号 root / 12345678。")
         }

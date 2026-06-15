@@ -26,10 +26,11 @@ import com.bookrealm.reader.data.local.BookCacheEntity
 import com.bookrealm.reader.data.remote.dto.BookItemDto
 import com.bookrealm.reader.data.remote.dto.ChapterItemDto
 import com.bookrealm.reader.ui.design.BrDimens
+import com.bookrealm.reader.ui.design.BrShapes
 
 @Composable
 fun ShelfBookRow(book: BookCacheEntity, isLast: Boolean, onClick: () -> Unit) {
-    Card(onClick = onClick) {
+    Card(onClick = onClick, shape = BrShapes.Md) {
         Row(Modifier.fillMaxWidth().padding(BrDimens.GapMd), verticalAlignment = Alignment.CenterVertically) {
             BookCover(title = book.title, compact = true)
             Spacer(Modifier.width(BrDimens.GapMd))
@@ -53,7 +54,7 @@ fun ShelfBookRow(book: BookCacheEntity, isLast: Boolean, onClick: () -> Unit) {
 
 @Composable
 fun BookCard(book: BookItemDto, onClick: () -> Unit) {
-    Card(onClick = onClick) {
+    Card(onClick = onClick, shape = BrShapes.Md) {
         Row(Modifier.fillMaxWidth().padding(BrDimens.GapMd), verticalAlignment = Alignment.CenterVertically) {
             BookCover(title = book.title, compact = true)
             Spacer(Modifier.width(BrDimens.GapMd))
@@ -71,7 +72,7 @@ fun BookCard(book: BookItemDto, onClick: () -> Unit) {
 
 @Composable
 fun ChapterRow(chapter: ChapterItemDto, onClick: () -> Unit) {
-    Card(onClick = onClick) {
+    Card(onClick = onClick, shape = BrShapes.Md) {
         Row(Modifier.fillMaxWidth().padding(BrDimens.GapMd), verticalAlignment = Alignment.CenterVertically) {
             Text("${chapter.seq}", color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(42.dp))
             Text(chapter.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))

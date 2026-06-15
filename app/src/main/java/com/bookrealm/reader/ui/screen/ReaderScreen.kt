@@ -24,8 +24,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FormatLineSpacing
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Headphones
@@ -41,10 +42,6 @@ import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.TextDecrease
 import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
@@ -53,7 +50,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -83,11 +79,18 @@ import com.bookrealm.reader.data.remote.dto.ParagraphDto
 import com.bookrealm.reader.ui.component.ChapterRow
 import com.bookrealm.reader.ui.component.LoadingBox
 import com.bookrealm.reader.ui.component.StateBox
+import com.bookrealm.reader.ui.design.AiInputBar
+import com.bookrealm.reader.ui.design.AiPromptChip
+import com.bookrealm.reader.ui.design.BrActionDock
+import com.bookrealm.reader.ui.design.BrButton
 import com.bookrealm.reader.ui.design.BrColors
 import com.bookrealm.reader.ui.design.BrDimens
+import com.bookrealm.reader.ui.design.BrDockAction
 import com.bookrealm.reader.ui.design.BrReaderBottomSurface
 import com.bookrealm.reader.ui.design.BrReaderTopSurface
 import com.bookrealm.reader.ui.design.BrShapes
+import com.bookrealm.reader.ui.design.BrTextField
+import com.bookrealm.reader.ui.design.InfoCard
 import com.bookrealm.reader.ui.reader.ReaderPalette
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -322,47 +325,31 @@ private fun SelectionToolbar(
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (notePanelVisible) {
-            Surface(shape = MaterialTheme.shapes.large, tonalElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("写想法", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(paragraphs.joinToString("\n") { it.content }, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    OutlinedTextField(
-                        value = noteDraft,
-                        onValueChange = onNoteChange,
-                        label = { Text("笔记") },
-                        minLines = 2,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        Button(onClick = onSaveNote) { Text("保存") }
-                    }
+            InfoCard(title = "写想法") {
+                Text(paragraphs.joinToString("\n") { it.content }, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                BrTextField(
+                    value = noteDraft,
+                    onValueChange = onNoteChange,
+                    label = "笔记",
+                    minLines = 2,
+                    singleLine = false,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    BrButton(text = "保存", onClick = onSaveNote)
                 }
             }
         }
-        Surface(shape = BrShapes.Xl, color = BrColors.ActionDock, tonalElevation = 8.dp) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SelectionTool(Icons.Filled.ContentCopy, "复制", onCopy)
-                SelectionTool(Icons.Filled.Highlight, "划线", onHighlight)
-                SelectionTool(Icons.Filled.EditNote, "写想法", onToggleNote)
-                SelectionTool(Icons.Filled.Psychology, "AI 问书", onAsk)
-                SelectionTool(Icons.Filled.Headphones, "听当前") {}
-                IconButton(onClick = onClose, modifier = Modifier.size(38.dp)) {
-                    Icon(Icons.Filled.Close, contentDescription = "关闭", tint = Color.White)
-                }
+        BrActionDock {
+            BrDockAction(Icons.Filled.ContentCopy, "复制", onCopy)
+            BrDockAction(Icons.Filled.Highlight, "划线", onHighlight)
+            BrDockAction(Icons.Filled.EditNote, "写想法", onToggleNote)
+            BrDockAction(Icons.Filled.Psychology, "AI 问书", onAsk)
+            BrDockAction(Icons.Filled.Headphones, "听当前", onClick = {})
+            IconButton(onClick = onClose, modifier = Modifier.size(38.dp)) {
+                Icon(Icons.Filled.Close, contentDescription = "关闭", tint = Color.White)
             }
         }
-    }
-}
-
-@Composable
-private fun SelectionTool(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable(onClick = onClick).padding(horizontal = 4.dp)) {
-        Icon(icon, contentDescription = label, tint = Color.White)
-        Text(label, color = Color.White, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -408,7 +395,7 @@ private fun ReaderTopBar(title: String, palette: ReaderPalette, onBack: () -> Un
                 .height(BrDimens.ReaderTopBarHeight),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "返回", tint = palette.foreground) }
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = palette.foreground) }
             Text(title, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, color = palette.foreground)
             IconButton(onClick = {}) { Icon(Icons.Filled.MoreVert, contentDescription = "更多", tint = palette.foreground) }
         }
@@ -431,7 +418,7 @@ private fun ReaderBottomBar(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ReaderTool(Icons.Filled.MenuBook, "目录", palette, onToc)
+            ReaderTool(Icons.AutoMirrored.Filled.MenuBook, "目录", palette, onToc)
             ReaderTool(Icons.Filled.Palette, "设置", palette, onSettings)
             ReaderTool(Icons.Filled.Psychology, "摘要", palette, onSummary)
             ReaderTool(Icons.Filled.Headphones, "听", palette, onListen)
@@ -468,7 +455,7 @@ private fun ReaderSettings(
                 }
             }
         }
-        Divider()
+        HorizontalDivider()
         SettingStepper("字号", Icons.Filled.FormatSize, fontScale, onMinus = { onFont(fontScale - 0.1f) }, onPlus = { onFont(fontScale + 0.1f) })
         SettingStepper("行距", Icons.Filled.FormatLineSpacing, lineScale, onMinus = { onLineScale((lineScale - 0.1f).coerceIn(0.9f, 1.5f)) }, onPlus = { onLineScale((lineScale + 0.1f).coerceIn(0.9f, 1.5f)) })
         Text("竖排/分页模式会在后续 Spike 进入;本轮先把工具层和阅读设置跑通。", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -529,7 +516,7 @@ private fun AiAskFullScreen(
         ) {
             Box(Modifier.fillMaxWidth()) {
                 IconButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterStart)) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "关闭 AI", tint = Color.White)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "关闭 AI", tint = Color.White)
                 }
                 Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(title, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -550,46 +537,16 @@ private fun AiAskFullScreen(
                     "用三句话总结本章",
                     "列出关键概念",
                 ).forEach { prompt ->
-                    Surface(
-                        shape = MaterialTheme.shapes.extraLarge,
-                        color = Color.Transparent,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF333333)),
-                        modifier = Modifier.clickable { onQuickAsk(prompt) },
-                    ) {
-                        Text(prompt, modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp), color = Color(0xFFD8D8D8))
-                    }
+                    AiPromptChip(text = prompt, onClick = { onQuickAsk(prompt) })
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     listOf("书籍亮点", "背景解读", "关键概念").forEach { chip ->
-                        Button(onClick = { onQuickAsk(chip) }, modifier = Modifier.weight(1f)) {
-                            Text(chip)
-                        }
+                        BrButton(text = chip, onClick = { onQuickAsk(chip) }, modifier = Modifier.weight(1f), tonal = true)
                     }
                 }
             }
 
-            Surface(shape = BrShapes.Xl, color = BrColors.AiInput) {
-                Row(Modifier.padding(start = 16.dp, top = 8.dp, end = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = question,
-                        onValueChange = onQuestion,
-                        placeholder = { Text("针对本书提出你的问题") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    FloatingActionButton(onClick = onAsk, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "发送")
-                    }
-                }
-            }
+            AiInputBar(value = question, onValueChange = onQuestion, onSend = onAsk)
         }
-    }
-}
-
-@Composable
-private fun AiResultCard(aiResult: String) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-        Text(aiResult, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
     }
 }

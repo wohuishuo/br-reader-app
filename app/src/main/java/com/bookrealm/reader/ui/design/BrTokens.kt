@@ -29,6 +29,8 @@ object BrColors {
     val AiScrim = Color.Black
     val AiSurface = Color(0xFF171717)
     val AiInput = Color(0xFF1D1D1D)
+    val AiBorder = Color(0xFF333333)
+    val AiTextMuted = Color(0xFFD8D8D8)
     val ActionDock = Color(0xEE2F2F2F)
 }
 
@@ -41,6 +43,8 @@ object BrDimens {
     val GapLg = 16.dp
     val GapXl = 20.dp
     val IconButton = 48.dp
+    val FabSmall = 48.dp
+    val Hairline = 1.dp
     val ReaderTopBarHeight = 58.dp
     val ReaderBottomBarHeight = 60.dp
     val BookCoverWidth = 70.dp

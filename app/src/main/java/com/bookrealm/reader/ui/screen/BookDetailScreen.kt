@@ -12,14 +12,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +33,9 @@ import com.bookrealm.reader.ui.component.BookCover
 import com.bookrealm.reader.ui.component.ChapterRow
 import com.bookrealm.reader.ui.component.LoadingBox
 import com.bookrealm.reader.ui.component.StateBox
+import com.bookrealm.reader.ui.design.BrButton
+import com.bookrealm.reader.ui.design.BrDimens
+import com.bookrealm.reader.ui.design.InfoCard
 
 @Composable
 fun BookDetailScreen(
@@ -53,37 +53,38 @@ fun BookDetailScreen(
             is UiState.Error -> StateBox("书籍详情加载失败", state.message, action = "重试", onAction = onRetry)
             is UiState.Success -> {
                 val book = state.data
-                LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                LazyColumn(contentPadding = PaddingValues(BrDimens.PagePadding), verticalArrangement = Arrangement.spacedBy(BrDimens.GapLg)) {
                     item {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                         }
                     }
                     item {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             BookCover(title = book.title, modifier = Modifier.size(width = 92.dp, height = 124.dp))
-                            Spacer(Modifier.width(16.dp))
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Spacer(Modifier.width(BrDimens.GapLg))
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(BrDimens.GapSm)) {
                                 Text(book.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                                 Text(book.author, color = MaterialTheme.colorScheme.primary)
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(BrDimens.GapSm)) {
                                     book.tags.take(3).forEach { AssistChip(onClick = {}, label = { Text(it) }) }
                                 }
                             }
                         }
                     }
                     item {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Button(onClick = { onOpenChapter(book.id, book.chapters.firstOrNull()?.id ?: return@Button) }) {
-                                Icon(Icons.Filled.AutoStories, contentDescription = null)
-                                Spacer(Modifier.width(6.dp))
-                                Text(if (session.lastBookId == book.id) "继续阅读" else "开始阅读")
-                            }
-                            FilledTonalButton(onClick = { onAddShelf(book) }) {
-                                Icon(Icons.Filled.BookmarkAdd, contentDescription = null)
-                                Spacer(Modifier.width(6.dp))
-                                Text("加入书架")
-                            }
+                        Row(horizontalArrangement = Arrangement.spacedBy(BrDimens.GapMd)) {
+                            BrButton(
+                                text = if (session.lastBookId == book.id) "继续阅读" else "开始阅读",
+                                onClick = { onOpenChapter(book.id, book.chapters.firstOrNull()?.id ?: return@BrButton) },
+                                icon = { Icon(Icons.Filled.AutoStories, contentDescription = null) },
+                            )
+                            BrButton(
+                                text = "加入书架",
+                                onClick = { onAddShelf(book) },
+                                tonal = true,
+                                icon = { Icon(Icons.Filled.BookmarkAdd, contentDescription = null) },
+                            )
                         }
                     }
                     item {
@@ -110,10 +111,5 @@ fun BookDetailScreen(
 
 @Composable
 private fun DetailSection(title: String, content: @Composable () -> Unit) {
-    Card {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            content()
-        }
-    }
+    InfoCard(title = title, content = content)
 }

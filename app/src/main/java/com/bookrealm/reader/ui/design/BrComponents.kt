@@ -1,6 +1,8 @@
 package com.bookrealm.reader.ui.design
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -8,8 +10,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -20,11 +24,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
@@ -63,6 +71,30 @@ fun SearchField(
             Icon(Icons.Filled.Search, contentDescription = "搜索")
         }
     }
+}
+
+@Composable
+fun BrTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    placeholder: String? = null,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = label?.let { { Text(it) } },
+        placeholder = placeholder?.let { { Text(it) } },
+        singleLine = singleLine,
+        minLines = minLines,
+        visualTransformation = visualTransformation,
+        shape = BrShapes.Md,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -111,6 +143,20 @@ fun BannerCard(
             if (action != null && onAction != null) {
                 BrButton(text = action, onClick = onAction, tonal = true)
             }
+        }
+    }
+}
+
+@Composable
+fun InfoCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Card(modifier = modifier.fillMaxWidth(), shape = BrShapes.Md) {
+        Column(Modifier.padding(BrDimens.GapLg), verticalArrangement = Arrangement.spacedBy(BrDimens.GapSm)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            content()
         }
     }
 }
@@ -171,6 +217,80 @@ fun MiniPlayerBar(
                 if (!subtitle.isNullOrBlank()) {
                     Text(subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun BrActionDock(
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit,
+) {
+    Surface(shape = BrShapes.Xl, color = BrColors.ActionDock, tonalElevation = BrDimens.GapSm, modifier = modifier) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = BrDimens.GapMd, vertical = BrDimens.GapSm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            content = content,
+        )
+    }
+}
+
+@Composable
+fun BrDockAction(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.clickable(onClick = onClick).padding(horizontal = BrDimens.GapXs),
+    ) {
+        Icon(icon, contentDescription = label, tint = Color.White)
+        Text(label, color = Color.White, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
+fun AiPromptChip(
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = BrShapes.Xl,
+        color = Color.Transparent,
+        border = BorderStroke(BrDimens.Hairline, BrColors.AiBorder),
+        modifier = modifier.clickable(onClick = onClick),
+    ) {
+        Text(text, modifier = Modifier.padding(horizontal = BrDimens.GapLg, vertical = BrDimens.GapMd), color = BrColors.AiTextMuted)
+    }
+}
+
+@Composable
+fun AiInputBar(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onSend: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(shape = BrShapes.Xl, color = BrColors.AiInput, modifier = modifier.fillMaxWidth()) {
+        Row(
+            Modifier.padding(start = BrDimens.GapLg, top = BrDimens.GapSm, end = BrDimens.GapSm, bottom = BrDimens.GapSm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BrTextField(
+                value = value,
+                onValueChange = onValueChange,
+                placeholder = "针对本书提出你的问题",
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(BrDimens.GapSm))
+            androidx.compose.material3.FloatingActionButton(onClick = onSend, modifier = Modifier.size(BrDimens.FabSmall)) {
+                Icon(Icons.Filled.ArrowUpward, contentDescription = "发送")
             }
         }
     }
