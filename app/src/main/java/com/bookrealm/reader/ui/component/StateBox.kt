@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.bookrealm.reader.ui.design.BrDimens
 
 @Composable
 fun LoadingBox(modifier: Modifier = Modifier.fillMaxSize()) {
@@ -41,9 +42,9 @@ fun StateBox(
 ) {
     Box(modifier, contentAlignment = Alignment.Center) {
         Column(
-            Modifier.padding(24.dp),
+            Modifier.padding(BrDimens.PagePaddingLarge),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(BrDimens.GapSm),
         ) {
             Box(
                 Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
@@ -51,7 +52,7 @@ fun StateBox(
             ) {
                 Icon(Icons.Filled.AutoStories, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(BrDimens.GapXs))
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (action != null && onAction != null) {

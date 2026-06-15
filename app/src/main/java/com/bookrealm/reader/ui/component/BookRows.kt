@@ -25,18 +25,19 @@ import androidx.compose.ui.unit.dp
 import com.bookrealm.reader.data.local.BookCacheEntity
 import com.bookrealm.reader.data.remote.dto.BookItemDto
 import com.bookrealm.reader.data.remote.dto.ChapterItemDto
+import com.bookrealm.reader.ui.design.BrDimens
 
 @Composable
 fun ShelfBookRow(book: BookCacheEntity, isLast: Boolean, onClick: () -> Unit) {
     Card(onClick = onClick) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(BrDimens.GapMd), verticalAlignment = Alignment.CenterVertically) {
             BookCover(title = book.title, compact = true)
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Spacer(Modifier.width(BrDimens.GapMd))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(BrDimens.GapXs)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(book.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     if (isLast) {
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(BrDimens.GapXs))
                         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     }
                 }
@@ -53,14 +54,14 @@ fun ShelfBookRow(book: BookCacheEntity, isLast: Boolean, onClick: () -> Unit) {
 @Composable
 fun BookCard(book: BookItemDto, onClick: () -> Unit) {
     Card(onClick = onClick) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(BrDimens.GapMd), verticalAlignment = Alignment.CenterVertically) {
             BookCover(title = book.title, compact = true)
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Spacer(Modifier.width(BrDimens.GapMd))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(BrDimens.GapSm)) {
                 Text(book.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text(book.author, color = MaterialTheme.colorScheme.primary)
                 Text(book.intro, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(BrDimens.GapSm)) {
                     book.tags.take(3).forEach { AssistChip(onClick = {}, label = { Text(it) }) }
                 }
             }
@@ -71,7 +72,7 @@ fun BookCard(book: BookItemDto, onClick: () -> Unit) {
 @Composable
 fun ChapterRow(chapter: ChapterItemDto, onClick: () -> Unit) {
     Card(onClick = onClick) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(BrDimens.GapMd), verticalAlignment = Alignment.CenterVertically) {
             Text("${chapter.seq}", color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(42.dp))
             Text(chapter.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         }

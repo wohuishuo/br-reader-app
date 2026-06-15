@@ -83,6 +83,11 @@ import com.bookrealm.reader.data.remote.dto.ParagraphDto
 import com.bookrealm.reader.ui.component.ChapterRow
 import com.bookrealm.reader.ui.component.LoadingBox
 import com.bookrealm.reader.ui.component.StateBox
+import com.bookrealm.reader.ui.design.BrColors
+import com.bookrealm.reader.ui.design.BrDimens
+import com.bookrealm.reader.ui.design.BrReaderBottomSurface
+import com.bookrealm.reader.ui.design.BrReaderTopSurface
+import com.bookrealm.reader.ui.design.BrShapes
 import com.bookrealm.reader.ui.reader.ReaderPalette
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -158,7 +163,12 @@ fun ReaderScreen(
                         controlsVisible = !controlsVisible
                         if (!controlsVisible) aiExpanded = false
                     },
-                    contentPadding = PaddingValues(start = 22.dp, top = 112.dp, end = 22.dp, bottom = 128.dp),
+                    contentPadding = PaddingValues(
+                        start = BrDimens.PagePaddingLarge,
+                        top = 112.dp,
+                        end = BrDimens.PagePaddingLarge,
+                        bottom = 128.dp,
+                    ),
                     verticalArrangement = Arrangement.spacedBy((14 * lineScale).dp),
                 ) {
                     item {
@@ -329,7 +339,7 @@ private fun SelectionToolbar(
                 }
             }
         }
-        Surface(shape = MaterialTheme.shapes.extraLarge, color = Color(0xEE2F2F2F), tonalElevation = 8.dp) {
+        Surface(shape = BrShapes.Xl, color = BrColors.ActionDock, tonalElevation = 8.dp) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -373,8 +383,8 @@ private fun ParagraphText(
         modifier = Modifier
             .background(
                 when {
-                    selected -> Color(0x663C8DFF)
-                    marked -> Color(0x33FED766)
+                    selected -> BrColors.Selection
+                    marked -> BrColors.Highlight
                     else -> Color.Transparent
                 }
             )
@@ -390,14 +400,12 @@ private fun ParagraphText(
 
 @Composable
 private fun ReaderTopBar(title: String, palette: ReaderPalette, onBack: () -> Unit) {
-    Surface(color = palette.background.copy(alpha = 0.92f), shadowElevation = 0.dp) {
+    BrReaderTopSurface {
         Row(
             Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
                 .displayCutoutPadding()
-                .height(58.dp)
-                .padding(horizontal = 8.dp),
+                .height(BrDimens.ReaderTopBarHeight),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "返回", tint = palette.foreground) }
@@ -416,11 +424,10 @@ private fun ReaderBottomBar(
     onListen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(modifier = modifier.fillMaxWidth().navigationBarsPadding(), color = palette.background.copy(alpha = 0.90f), shadowElevation = 0.dp) {
-        Column {
-            HorizontalDivider(color = palette.muted.copy(alpha = 0.22f))
+    Box(modifier) {
+        BrReaderBottomSurface {
         Row(
-            Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 8.dp),
+            Modifier.fillMaxWidth().height(BrDimens.ReaderBottomBarHeight).padding(horizontal = BrDimens.GapSm),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -511,7 +518,7 @@ private fun AiAskFullScreen(
     onClose: () -> Unit,
     onAsk: () -> Unit,
 ) {
-    Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
+    Surface(modifier = Modifier.fillMaxSize(), color = BrColors.AiScrim) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -534,7 +541,7 @@ private fun AiAskFullScreen(
 
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 if (!aiResult.isNullOrBlank()) {
-                    Surface(shape = MaterialTheme.shapes.large, color = Color(0xFF171717)) {
+                    Surface(shape = BrShapes.Lg, color = BrColors.AiSurface) {
                         Text(aiResult, modifier = Modifier.padding(16.dp), color = Color.White, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -561,7 +568,7 @@ private fun AiAskFullScreen(
                 }
             }
 
-            Surface(shape = MaterialTheme.shapes.extraLarge, color = Color(0xFF1D1D1D)) {
+            Surface(shape = BrShapes.Xl, color = BrColors.AiInput) {
                 Row(Modifier.padding(start = 16.dp, top = 8.dp, end = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = question,

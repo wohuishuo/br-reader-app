@@ -32,6 +32,7 @@
 ```text
 app/src/main/java/com/bookrealm/reader/
 ├── navigation/AppRoot.kt       # 根导航、Snackbar、沉浸阅读切换
+├── ui/design/                  # BrTheme、BrTokens、BrTopBar、BrNavBar、ReaderChrome
 ├── ui/screen/                  # 书架、书城、我的、详情、阅读器页面
 ├── ui/component/               # 封面、列表行、Loading/Error/Empty 状态
 ├── ui/reader/ReadStyle.kt      # 阅读主题、字号、行距模型
@@ -42,6 +43,17 @@ app/src/main/java/com/bookrealm/reader/
 ```
 
 这次拆分是 v2.1 第二轮的基础。后面加划线、笔记、TTS、词典、竖排阅读时,优先改对应页面或组件,不要再把新功能塞回 `AppRoot.kt`。
+
+## 设计系统
+
+**结论:颜色、间距、形状和导航 chrome 只有一个真相来源。**
+
+- `BrTheme`:统一 Material 3 color scheme,预留 Android 12+ dynamic color。
+- `BrColors` / `BrDimens` / `BrShapes` / `BrMotion`:统一颜色、间距、圆角和动效参数。
+- `BrTopBar` / `BrNavBar` / `BrNavItem`:普通页面统一顶栏和底部导航。
+- `BrReaderTopSurface` / `BrReaderBottomSurface`:阅读器和沉浸页统一系统栏避让与工具层容器。
+
+旧 `ReaderTokens` 已降级为兼容层,真实值来自 `ui/design`。
 
 ## 交互规则
 

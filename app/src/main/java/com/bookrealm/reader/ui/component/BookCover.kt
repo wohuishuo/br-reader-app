@@ -13,16 +13,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bookrealm.reader.ui.theme.ReaderTokens
+import com.bookrealm.reader.ui.design.BrDimens
+import com.bookrealm.reader.ui.design.BrShapes
 
 @Composable
 fun BookCover(
     title: String,
-    modifier: Modifier = Modifier.size(width = 70.dp, height = 96.dp),
+    modifier: Modifier = Modifier.size(width = BrDimens.BookCoverWidth, height = BrDimens.BookCoverHeight),
     compact: Boolean = false,
 ) {
     val text = title.take(2).ifBlank { "书" }
     Box(
-        modifier.clip(RoundedCornerShape(ReaderTokens.CoverRadius)).background(MaterialTheme.colorScheme.primaryContainer),
+        modifier.clip(BrShapes.Sm).background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center,
     ) {
         Text(

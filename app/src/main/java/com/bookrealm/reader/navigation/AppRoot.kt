@@ -12,14 +12,11 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +40,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.bookrealm.reader.core.UiState
 import com.bookrealm.reader.ui.component.StateBox
+import com.bookrealm.reader.ui.design.BrNavBar
+import com.bookrealm.reader.ui.design.BrNavItem
+import com.bookrealm.reader.ui.design.BrTopBar
 import com.bookrealm.reader.ui.screen.BookDetailScreen
 import com.bookrealm.reader.ui.screen.MeScreen
 import com.bookrealm.reader.ui.screen.ReaderScreen
@@ -107,8 +107,8 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
     Scaffold(
         topBar = {
             if (!immersive) {
-                TopAppBar(
-                    title = { Text(currentRoute.title()) },
+                BrTopBar(
+                    title = currentRoute.title(),
                     actions = {
                         if (currentRoute == "shelf") {
                             TextButton(onClick = {
@@ -132,9 +132,9 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (!immersive) {
-                NavigationBar {
+                BrNavBar {
                     tabs.forEach { tab ->
-                        NavigationBarItem(
+                        BrNavItem(
                             selected = currentRoute == tab.route,
                             onClick = {
                                 actions.closeBook()
@@ -144,7 +144,7 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                                 }
                             },
                             icon = tab.icon,
-                            label = { Text(tab.label) }
+                            label = tab.label
                         )
                     }
                 }
