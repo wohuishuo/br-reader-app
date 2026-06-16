@@ -27,6 +27,7 @@ data class ReaderUiState(
     val shelf: List<BookCacheEntity> = emptyList(),
     val selectedBook: UiState<BookDetailDto>? = null,
     val selectedChapter: UiState<ChapterDetailDto>? = null,
+    val readingFromShelf: Boolean = false,
     val chapterMarks: List<MarkItemDto> = emptyList(),
     val paragraphComments: List<CommentItemDto> = emptyList(),
     val activeInteractionParagraphId: Long? = null,
@@ -75,7 +76,7 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun openBook(bookId: Long) = viewModelScope.launch {
-        mutable.value = mutable.value.copy(selectedBook = UiState.Loading, selectedChapter = null)
+        mutable.value = mutable.value.copy(selectedBook = UiState.Loading, selectedChapter = null, readingFromShelf = false)
         runCatching { repository.bookDetail(bookId) }
             .onSuccess { mutable.value = mutable.value.copy(selectedBook = UiState.Success(it)) }
             .onFailure { mutable.value = mutable.value.copy(selectedBook = UiState.Error(it.toUserMessage())) }
@@ -84,10 +85,11 @@ class ReaderViewModel @Inject constructor(
     fun openBookForReading(bookId: Long) = viewModelScope.launch {
         val session = uiState.value.session
         if (session.lastBookId == bookId && session.lastChapterId > 0) {
+            mutable.value = mutable.value.copy(readingFromShelf = true)
             openChapterDirect(bookId, session.lastChapterId)
             return@launch
         }
-        mutable.value = mutable.value.copy(selectedBook = UiState.Loading, selectedChapter = null)
+        mutable.value = mutable.value.copy(selectedBook = UiState.Loading, selectedChapter = null, readingFromShelf = true)
         runCatching { repository.bookDetail(bookId) }
             .onSuccess { detail ->
                 val firstChapter = detail.chapters.firstOrNull()
@@ -118,6 +120,7 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun openChapter(bookId: Long, chapterId: Long) = viewModelScope.launch {
+        mutable.value = mutable.value.copy(readingFromShelf = false)
         openChapterInternal(bookId, chapterId, keepDetail = true)
     }
 
@@ -141,8 +144,11 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun closeChapter() {
+        val returnToShelf = mutable.value.readingFromShelf
         mutable.value = mutable.value.copy(
             selectedChapter = null,
+            selectedBook = if (returnToShelf) null else mutable.value.selectedBook,
+            readingFromShelf = false,
             chapterMarks = emptyList(),
             paragraphComments = emptyList(),
             activeInteractionParagraphId = null,

@@ -73,7 +73,7 @@ fun ShelfScreen(
                     onAction = onGoStore,
                 )
             } else {
-                ContinueReadingCard(book = last, session = session, onOpen = { onOpen(last.id) })
+                ContinueReadingCard(book = last, session = session, onOpen = { onRead(last.id) })
             }
         }
         item {

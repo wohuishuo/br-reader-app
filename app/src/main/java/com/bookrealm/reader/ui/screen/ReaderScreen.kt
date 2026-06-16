@@ -165,6 +165,9 @@ fun ReaderScreen(
     BackHandler(enabled = aiExpanded) {
         aiExpanded = false
     }
+    BackHandler(enabled = activeMark != null) {
+        activeMark = null
+    }
 
     Box(Modifier.fillMaxSize().background(palette.background)) {
         when (state) {
@@ -184,7 +187,9 @@ fun ReaderScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().clickable {
-                        if (selectionStartSeq != null) {
+                        if (activeMark != null) {
+                            activeMark = null
+                        } else if (selectionStartSeq != null) {
                             selectionStartSeq = null
                             selectionEndSeq = null
                             notePanelVisible = false
@@ -216,7 +221,7 @@ fun ReaderScreen(
                                 if (selectionStartSeq != null) {
                                     selectionEndSeq = paragraph.seq
                                 } else if (mark != null) {
-                                    activeMark = mark
+                                    activeMark = if (activeMark?.id == mark.id) null else mark
                                     controlsVisible = true
                                 } else {
                                     toggleControls()

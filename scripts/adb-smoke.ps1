@@ -25,7 +25,11 @@ Write-Host "[adb-smoke] reverse ports"
 & $adb reverse tcp:8084 tcp:8084 | Out-Null
 
 Write-Host "[adb-smoke] install debug apk"
-& $adb install -r "app\build\outputs\apk\debug\app-debug.apk" | Out-Host
+$installOutput = & $adb install -r -g "app\build\outputs\apk\debug\app-debug.apk" 2>&1
+$installOutput | Out-Host
+if ($LASTEXITCODE -ne 0 -or (($installOutput -join "`n") -notmatch "Success")) {
+  throw "APK install failed. Unlock the phone and approve the install prompt, then rerun scripts/adb-smoke.ps1."
+}
 
 Write-Host "[adb-smoke] launch app"
 & $adb shell monkey -p com.bookrealm.reader 1 | Out-Null
