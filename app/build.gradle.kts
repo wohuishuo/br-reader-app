@@ -15,8 +15,8 @@ android {
         applicationId = "com.bookrealm.reader"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 30
+        versionName = "0.3.0-alpha.20260616"
     }
 
     buildTypes {

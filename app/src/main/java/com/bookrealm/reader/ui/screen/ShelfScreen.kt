@@ -52,7 +52,7 @@ fun ShelfScreen(
             item {
                 EmptyCard(
                     title = "书架还没有书",
-                    body = "v2.1 先让书架成为继续阅读入口,推荐和活动以后再进来。",
+                    body = "去书城添加一本书后,这里会保存你的阅读进度和离线章节。",
                     action = "去书城添加",
                     onAction = onGoStore,
                 )

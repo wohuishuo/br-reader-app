@@ -102,7 +102,7 @@ fun BookDetailScreen(
                     }
                     item {
                         DetailSection(title = "AI 阅读") {
-                            Text("v2.1 先保留入口:进入章节后可以摘要、提问。v2.2 会接选中文字解释。")
+                            Text("进入章节后可以请求摘要、围绕原文提问,也可以选中段落后让 AI 解释。")
                         }
                     }
                     item {
