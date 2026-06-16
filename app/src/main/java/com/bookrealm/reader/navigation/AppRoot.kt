@@ -23,8 +23,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -44,6 +48,7 @@ import com.bookrealm.reader.ui.screen.MeScreen
 import com.bookrealm.reader.ui.screen.ReaderScreen
 import com.bookrealm.reader.ui.screen.ShelfScreen
 import com.bookrealm.reader.ui.screen.StoreScreen
+import com.bookrealm.reader.ui.testing.TestTags
 import com.bookrealm.reader.ui.theme.ReaderTheme
 import com.bookrealm.reader.viewmodel.ReaderUiState
 import com.bookrealm.reader.viewmodel.ReaderViewModel
@@ -65,7 +70,7 @@ fun AppRoot(viewModel: ReaderViewModel = hiltViewModel()) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
     val navController = rememberNavController()
@@ -103,6 +108,7 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
     }
 
     Scaffold(
+        modifier = Modifier.semantics { testTagsAsResourceId = true },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (!immersive) {
@@ -118,7 +124,8 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                                 }
                             },
                             icon = tab.icon,
-                            label = tab.label
+                            label = tab.label,
+                            modifier = Modifier.testTag(TestTags.BottomTabPrefix + tab.route)
                         )
                     }
                 }
@@ -130,6 +137,8 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                 ReaderScreen(
                     state = state.selectedChapter,
                     fontScale = state.session.fontScale,
+                    lineScale = state.session.lineScale,
+                    paletteName = state.session.readerPalette,
                     initialParagraphIndex = state.session.lastParagraphIndex,
                     userId = state.session.userId,
                     aiResult = state.aiResult,
@@ -139,10 +148,13 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                     chapters = (state.selectedBook as? UiState.Success)?.data?.chapters.orEmpty(),
                     onBack = actions::closeChapter,
                     onFont = actions::setFontScale,
+                    onLineScale = actions::setLineScale,
+                    onPalette = actions::setReaderPalette,
                     onProgress = actions::saveProgress,
                     onSummary = actions::summarizeCurrentChapter,
                     onAsk = actions::askCurrentChapter,
                     onMark = actions::saveParagraphMark,
+                    onDeleteMark = actions::deleteParagraphMark,
                     onOpenInteraction = actions::openParagraphInteraction,
                     onCloseInteraction = actions::closeParagraphInteraction,
                     onComment = actions::saveParagraphComment,
@@ -171,6 +183,7 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                             session = state.session,
                             onOpen = actions::openBook,
                             onRead = actions::openBookForReading,
+                            onRemove = actions::removeFromShelf,
                             onGoStore = {
                                 actions.closeBook()
                                 navController.navigate("store") {

@@ -57,10 +57,11 @@ fun RowScope.BrNavItem(
     onClick: () -> Unit,
     icon: @Composable () -> Unit,
     label: String,
+    modifier: Modifier = Modifier,
 ) {
     val contentColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
-        modifier = Modifier
+        modifier = modifier
             .weight(1f)
             .selectable(selected = selected, onClick = onClick, role = Role.Tab)
             .padding(vertical = BrDimens.GapSm),

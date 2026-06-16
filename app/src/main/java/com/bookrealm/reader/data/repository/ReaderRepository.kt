@@ -76,6 +76,10 @@ class ReaderRepository @Inject constructor(
         }
     }
 
+    suspend fun removeFromShelf(bookId: Long) {
+        bookCacheDao.removeFromShelf(bookId)
+    }
+
     suspend fun chapterDetail(chapterId: Long): ChapterDetailDto {
         return runCatching {
             libraryApi.chapterDetail(chapterId).requireData().also { cacheChapter(it) }
@@ -139,6 +143,14 @@ class ReaderRepository @Inject constructor(
     }
 
     suspend fun saveFontScale(scale: Float) = sessionStore.saveFontScale(scale)
+
+    suspend fun saveLineScale(scale: Float) = sessionStore.saveLineScale(scale)
+
+    suspend fun saveReaderPalette(palette: String) = sessionStore.saveReaderPalette(palette)
+
+    suspend fun deleteMark(userId: Long, markId: Long) {
+        libraryApi.deleteMark(markId, userId).requireData()
+    }
 
     suspend fun saveProgress(userId: Long, bookId: Long, chapterId: Long, paragraphIndex: Int) {
         sessionStore.saveProgress(bookId, chapterId, paragraphIndex)

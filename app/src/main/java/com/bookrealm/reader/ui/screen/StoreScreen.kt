@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.bookrealm.reader.core.UiState
 import com.bookrealm.reader.data.remote.dto.BookItemDto
@@ -20,6 +21,7 @@ import com.bookrealm.reader.ui.component.LoadingBox
 import com.bookrealm.reader.ui.component.StateBox
 import com.bookrealm.reader.ui.design.BrDimens
 import com.bookrealm.reader.ui.design.SearchField
+import com.bookrealm.reader.ui.testing.TestTags
 
 @Composable
 fun StoreScreen(
@@ -38,6 +40,7 @@ fun StoreScreen(
             onValueChange = { input = it },
             onSearch = { onSearch(input) },
             placeholder = "搜索书名,例如 西游",
+            modifier = Modifier.testTag(TestTags.StoreSearch),
         )
         when (books) {
             UiState.Loading -> LoadingBox()

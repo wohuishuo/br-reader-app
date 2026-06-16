@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -22,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,6 +32,7 @@ import com.bookrealm.reader.data.remote.dto.BookItemDto
 import com.bookrealm.reader.data.remote.dto.ChapterItemDto
 import com.bookrealm.reader.ui.design.BrDimens
 import com.bookrealm.reader.ui.design.BrShapes
+import com.bookrealm.reader.ui.testing.TestTags
 
 @Composable
 fun ShelfBookRow(
@@ -37,8 +40,9 @@ fun ShelfBookRow(
     isLast: Boolean,
     onRead: () -> Unit,
     onDetail: () -> Unit,
+    onRemove: () -> Unit,
 ) {
-    Card(shape = BrShapes.Md) {
+    Card(shape = BrShapes.Md, modifier = Modifier.testTag(TestTags.ShelfBookPrefix + book.id)) {
         Row(Modifier.fillMaxWidth().padding(BrDimens.GapMd), verticalAlignment = Alignment.CenterVertically) {
             BookCover(
                 title = book.title,
@@ -64,6 +68,9 @@ fun ShelfBookRow(
             }
             IconButton(onClick = onDetail) {
                 Icon(Icons.Filled.Info, contentDescription = "详情")
+            }
+            IconButton(onClick = onRemove) {
+                Icon(Icons.Filled.DeleteOutline, contentDescription = "移出书架")
             }
         }
     }

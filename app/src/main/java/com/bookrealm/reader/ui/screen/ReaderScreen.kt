@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Highlight
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Nightlight
@@ -69,6 +70,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -95,12 +97,15 @@ import com.bookrealm.reader.ui.design.BrShapes
 import com.bookrealm.reader.ui.design.BrTextField
 import com.bookrealm.reader.ui.design.InfoCard
 import com.bookrealm.reader.ui.reader.ReaderPalette
+import com.bookrealm.reader.ui.testing.TestTags
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ReaderScreen(
     state: UiState<ChapterDetailDto>,
     fontScale: Float,
+    lineScale: Float,
+    paletteName: String,
     initialParagraphIndex: Int,
     userId: Long,
     aiResult: String?,
@@ -110,10 +115,13 @@ fun ReaderScreen(
     chapters: List<ChapterItemDto>,
     onBack: () -> Unit,
     onFont: (Float) -> Unit,
+    onLineScale: (Float) -> Unit,
+    onPalette: (String) -> Unit,
     onProgress: (Long, Long, Long, Int) -> Unit,
     onSummary: () -> Unit,
     onAsk: (String) -> Unit,
     onMark: (Long, Int, String?) -> Unit,
+    onDeleteMark: (Long) -> Unit,
     onOpenInteraction: (Long) -> Unit,
     onCloseInteraction: () -> Unit,
     onComment: (Long, String) -> Unit,
@@ -122,8 +130,8 @@ fun ReaderScreen(
 ) {
     var question by remember { mutableStateOf("仙石是什么") }
     var controlsVisible by remember { mutableStateOf(false) }
-    var palette by remember { mutableStateOf(ReaderPalette.Paper) }
-    var lineScale by remember { mutableFloatStateOf(1.0f) }
+    val palette = remember(paletteName) { ReaderPalette.entries.firstOrNull { it.name == paletteName } ?: ReaderPalette.Paper }
+    var currentLineScale by remember(lineScale) { mutableFloatStateOf(lineScale) }
     var showToc by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var aiExpanded by remember { mutableStateOf(false) }
@@ -132,6 +140,7 @@ fun ReaderScreen(
     var notePanelVisible by remember { mutableStateOf(false) }
     var noteDraft by remember { mutableStateOf("") }
     var commentDraft by remember { mutableStateOf("") }
+    var activeMark by remember { mutableStateOf<MarkItemDto?>(null) }
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -189,7 +198,7 @@ fun ReaderScreen(
                         end = BrDimens.PagePaddingLarge,
                         bottom = if (controlsVisible) 116.dp else 48.dp,
                     ),
-                    verticalArrangement = Arrangement.spacedBy((14 * lineScale).dp),
+                    verticalArrangement = Arrangement.spacedBy((14 * currentLineScale).dp),
                 ) {
                     item {
                         Text(chapter.title, color = palette.foreground, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -201,10 +210,14 @@ fun ReaderScreen(
                             selected = selectedParagraphs.any { it.id == paragraph.id },
                             palette = palette,
                             fontScale = fontScale,
-                            lineScale = lineScale,
+                            lineScale = currentLineScale,
                             onClick = {
+                                val mark = marks.firstOrNull { it.paragraphId == paragraph.id }
                                 if (selectionStartSeq != null) {
                                     selectionEndSeq = paragraph.seq
+                                } else if (mark != null) {
+                                    activeMark = mark
+                                    controlsVisible = true
                                 } else {
                                     toggleControls()
                                 }
@@ -258,6 +271,32 @@ fun ReaderScreen(
                             .padding(horizontal = 14.dp, vertical = 88.dp),
                     )
                 }
+
+                activeMark?.let { mark ->
+                    MarkActionPanel(
+                        mark = mark,
+                        onDelete = {
+                            onDeleteMark(mark.id)
+                            activeMark = null
+                        },
+                        onNote = {
+                            selectionStartSeq = mark.paragraphSeq
+                            selectionEndSeq = mark.paragraphSeq
+                            noteDraft = mark.note.orEmpty()
+                            notePanelVisible = true
+                            activeMark = null
+                        },
+                        onComment = {
+                            onOpenInteraction(mark.paragraphId)
+                            activeMark = null
+                        },
+                        onClose = { activeMark = null },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(horizontal = 14.dp, vertical = 88.dp)
+                            .testTag(TestTags.ReaderMarkMenu),
+                    )
+                }
             }
         }
 
@@ -291,11 +330,15 @@ fun ReaderScreen(
             ModalBottomSheet(onDismissRequest = { showSettings = false }) {
                 ReaderSettings(
                     palette = palette,
-                    lineScale = lineScale,
-                    onPalette = { palette = it },
-                    onLineScale = { lineScale = it },
+                    lineScale = currentLineScale,
+                    onPalette = { onPalette(it.name) },
+                    onLineScale = {
+                        currentLineScale = it
+                        onLineScale(it)
+                    },
                     onFont = onFont,
                     fontScale = fontScale,
+                    modifier = Modifier.testTag(TestTags.ReaderSettings),
                 )
             }
         }
@@ -343,8 +386,39 @@ fun ReaderScreen(
                     selectionEndSeq = null
                     notePanelVisible = false
                 },
-                modifier = Modifier.align(Alignment.BottomCenter).padding(start = 14.dp, end = 14.dp, bottom = 84.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 14.dp, end = 14.dp, bottom = 84.dp)
+                    .testTag(TestTags.ReaderSelectionToolbar),
             )
+        }
+    }
+}
+
+@Composable
+private fun MarkActionPanel(
+    mark: MarkItemDto,
+    onDelete: () -> Unit,
+    onNote: () -> Unit,
+    onComment: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    InfoCard(title = if (mark.note.isNullOrBlank()) "已划线" else "已保存想法", modifier = modifier.fillMaxWidth()) {
+        if (!mark.note.isNullOrBlank()) {
+            Text(mark.note, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilledTonalButton(onClick = onNote, modifier = Modifier.weight(1f)) { Text("写想法") }
+            FilledTonalButton(onClick = onComment, modifier = Modifier.weight(1f)) { Text("段评") }
+            FilledTonalButton(onClick = onDelete, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Filled.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("删除")
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            FilledTonalButton(onClick = onClose) { Text("收起") }
         }
     }
 }
@@ -451,6 +525,7 @@ private fun ParagraphText(
     Text(
         paragraph.content,
         modifier = Modifier
+            .testTag(TestTags.ReaderParagraphPrefix + paragraph.seq)
             .background(
                 when {
                     selected -> BrColors.Selection
@@ -524,8 +599,9 @@ private fun ReaderSettings(
     onPalette: (ReaderPalette) -> Unit,
     onLineScale: (Float) -> Unit,
     onFont: (Float) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    Column(modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Text("阅读设置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ReaderPalette.entries.forEach { item ->
@@ -570,7 +646,7 @@ private fun ChapterToc(chapters: List<ChapterItemDto>, onOpen: (Long) -> Unit) {
 
 @Composable
 private fun AiAskButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    FloatingActionButton(onClick = onClick, modifier = modifier) {
+    FloatingActionButton(onClick = onClick, modifier = modifier.testTag(TestTags.AiAskButton)) {
         Icon(Icons.Filled.Psychology, contentDescription = "AI 提问")
     }
 }

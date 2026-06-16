@@ -50,6 +50,9 @@ interface BookCacheDao {
     @Query("UPDATE book_cache SET inShelf = 1 WHERE id = :bookId")
     suspend fun markInShelf(bookId: Long)
 
+    @Query("UPDATE book_cache SET inShelf = 0 WHERE id = :bookId")
+    suspend fun removeFromShelf(bookId: Long)
+
     @Query("SELECT EXISTS(SELECT 1 FROM book_cache WHERE id = :bookId AND inShelf = 1)")
     suspend fun isInShelf(bookId: Long): Boolean
 }

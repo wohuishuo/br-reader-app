@@ -146,4 +146,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```powershell
 ./gradlew testDebugUnitTest
 ./gradlew assembleDebug
+./scripts/adb-smoke.ps1
 ```
+
+`adb-smoke.ps1` 会安装 debug APK、启动 App、检查当前 Activity,并通过 Compose testTag 导出的 resource-id 验证书架搜索、书架书籍和底部导航存在。更深的点击链路会继续补 Compose UI 测试和 adb 脚本。

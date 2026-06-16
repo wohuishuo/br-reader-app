@@ -111,6 +111,12 @@ class ReaderViewModel @Inject constructor(
             .onFailure { setNotice(it.toUserMessage()) }
     }
 
+    fun removeFromShelf(bookId: Long) = viewModelScope.launch {
+        runCatching { repository.removeFromShelf(bookId) }
+            .onSuccess { setNotice("已移出书架") }
+            .onFailure { setNotice(it.toUserMessage()) }
+    }
+
     fun openChapter(bookId: Long, chapterId: Long) = viewModelScope.launch {
         openChapterInternal(bookId, chapterId, keepDetail = true)
     }
@@ -217,6 +223,32 @@ class ReaderViewModel @Inject constructor(
 
     fun setFontScale(scale: Float) = viewModelScope.launch {
         repository.saveFontScale(scale)
+    }
+
+    fun setLineScale(scale: Float) = viewModelScope.launch {
+        repository.saveLineScale(scale)
+    }
+
+    fun setReaderPalette(palette: String) = viewModelScope.launch {
+        repository.saveReaderPalette(palette)
+    }
+
+    fun deleteParagraphMark(markId: Long) = viewModelScope.launch {
+        val chapter = (mutable.value.selectedChapter as? UiState.Success)?.data ?: return@launch
+        val userId = effectiveUserId()
+        if (userId <= 0) {
+            setNotice("登录后才能删除划线")
+            return@launch
+        }
+        runCatching {
+            repository.deleteMark(userId, markId)
+            repository.chapterMarks(userId, chapter.id)
+        }.onSuccess {
+            mutable.value = mutable.value.copy(chapterMarks = it)
+            setNotice("划线已删除")
+        }.onFailure {
+            setNotice(it.toUserMessage())
+        }
     }
 
     fun setDarkTheme(enabled: Boolean) {
