@@ -8,6 +8,7 @@ import com.bookrealm.reader.data.local.SessionSnapshot
 import com.bookrealm.reader.data.remote.dto.BookDetailDto
 import com.bookrealm.reader.data.remote.dto.BookItemDto
 import com.bookrealm.reader.data.remote.dto.ChapterDetailDto
+import com.bookrealm.reader.data.remote.dto.CommentItemDto
 import com.bookrealm.reader.data.remote.dto.MarkItemDto
 import com.bookrealm.reader.data.repository.ReaderRepository
 import com.bookrealm.reader.data.repository.toUserMessage
@@ -27,6 +28,8 @@ data class ReaderUiState(
     val selectedBook: UiState<BookDetailDto>? = null,
     val selectedChapter: UiState<ChapterDetailDto>? = null,
     val chapterMarks: List<MarkItemDto> = emptyList(),
+    val paragraphComments: List<CommentItemDto> = emptyList(),
+    val activeInteractionParagraphId: Long? = null,
     val query: String = "",
     val aiResult: String? = null,
     val darkTheme: Boolean = true,
@@ -132,7 +135,12 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun closeChapter() {
-        mutable.value = mutable.value.copy(selectedChapter = null, chapterMarks = emptyList())
+        mutable.value = mutable.value.copy(
+            selectedChapter = null,
+            chapterMarks = emptyList(),
+            paragraphComments = emptyList(),
+            activeInteractionParagraphId = null,
+        )
     }
 
     fun saveParagraphMark(paragraphId: Long, paragraphSeq: Int, note: String? = null) = viewModelScope.launch {
@@ -151,6 +159,60 @@ class ReaderViewModel @Inject constructor(
         }.onFailure {
             setNotice(it.toUserMessage())
         }
+    }
+
+    fun openParagraphInteraction(paragraphId: Long) = viewModelScope.launch {
+        val userId = effectiveUserId()
+        if (userId <= 0) {
+            setNotice("登录后才能查看和参与段评")
+            return@launch
+        }
+        runCatching { repository.paragraphInteraction(userId, paragraphId) }
+            .onSuccess {
+                mutable.value = mutable.value.copy(
+                    activeInteractionParagraphId = paragraphId,
+                    paragraphComments = it.comments,
+                )
+            }
+            .onFailure { setNotice(it.toUserMessage()) }
+    }
+
+    fun closeParagraphInteraction() {
+        mutable.value = mutable.value.copy(activeInteractionParagraphId = null, paragraphComments = emptyList())
+    }
+
+    fun saveParagraphComment(paragraphId: Long, content: String) = viewModelScope.launch {
+        val chapter = (mutable.value.selectedChapter as? UiState.Success)?.data ?: return@launch
+        val userId = effectiveUserId()
+        if (userId <= 0) {
+            setNotice("登录后才能发布段评")
+            return@launch
+        }
+        runCatching {
+            repository.saveComment(userId, chapter.bookId, chapter.id, paragraphId, content)
+            repository.paragraphInteraction(userId, paragraphId)
+        }.onSuccess {
+            mutable.value = mutable.value.copy(
+                activeInteractionParagraphId = paragraphId,
+                paragraphComments = it.comments,
+            )
+            setNotice("段评已发布")
+        }.onFailure {
+            setNotice(it.toUserMessage())
+        }
+    }
+
+    fun toggleCommentLike(comment: CommentItemDto) = viewModelScope.launch {
+        val userId = effectiveUserId()
+        runCatching { repository.toggleCommentLike(userId, comment) }
+            .onSuccess { updated ->
+                mutable.value = mutable.value.copy(
+                    paragraphComments = mutable.value.paragraphComments.map {
+                        if (it.id == updated.id) updated else it
+                    }
+                )
+            }
+            .onFailure { setNotice(it.toUserMessage()) }
     }
 
     fun setFontScale(scale: Float) = viewModelScope.launch {

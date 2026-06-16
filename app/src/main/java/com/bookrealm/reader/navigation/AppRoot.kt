@@ -134,6 +134,8 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                     userId = state.session.userId,
                     aiResult = state.aiResult,
                     marks = state.chapterMarks,
+                    comments = state.paragraphComments,
+                    activeInteractionParagraphId = state.activeInteractionParagraphId,
                     chapters = (state.selectedBook as? UiState.Success)?.data?.chapters.orEmpty(),
                     onBack = actions::closeChapter,
                     onFont = actions::setFontScale,
@@ -141,6 +143,10 @@ private fun AppRootContent(state: ReaderUiState, actions: ReaderViewModel) {
                     onSummary = actions::summarizeCurrentChapter,
                     onAsk = actions::askCurrentChapter,
                     onMark = actions::saveParagraphMark,
+                    onOpenInteraction = actions::openParagraphInteraction,
+                    onCloseInteraction = actions::closeParagraphInteraction,
+                    onComment = actions::saveParagraphComment,
+                    onToggleCommentLike = actions::toggleCommentLike,
                     onOpenChapter = actions::openChapter,
                 )
             }

@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Highlight
+import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Nightlight
@@ -74,6 +76,7 @@ import androidx.compose.ui.unit.dp
 import com.bookrealm.reader.core.UiState
 import com.bookrealm.reader.data.remote.dto.ChapterDetailDto
 import com.bookrealm.reader.data.remote.dto.ChapterItemDto
+import com.bookrealm.reader.data.remote.dto.CommentItemDto
 import com.bookrealm.reader.data.remote.dto.MarkItemDto
 import com.bookrealm.reader.data.remote.dto.ParagraphDto
 import com.bookrealm.reader.ui.component.ChapterRow
@@ -102,6 +105,8 @@ fun ReaderScreen(
     userId: Long,
     aiResult: String?,
     marks: List<MarkItemDto>,
+    comments: List<CommentItemDto>,
+    activeInteractionParagraphId: Long?,
     chapters: List<ChapterItemDto>,
     onBack: () -> Unit,
     onFont: (Float) -> Unit,
@@ -109,6 +114,10 @@ fun ReaderScreen(
     onSummary: () -> Unit,
     onAsk: (String) -> Unit,
     onMark: (Long, Int, String?) -> Unit,
+    onOpenInteraction: (Long) -> Unit,
+    onCloseInteraction: () -> Unit,
+    onComment: (Long, String) -> Unit,
+    onToggleCommentLike: (CommentItemDto) -> Unit,
     onOpenChapter: (Long, Long) -> Unit,
 ) {
     var question by remember { mutableStateOf("仙石是什么") }
@@ -122,6 +131,7 @@ fun ReaderScreen(
     var selectionEndSeq by remember { mutableStateOf<Int?>(null) }
     var notePanelVisible by remember { mutableStateOf(false) }
     var noteDraft by remember { mutableStateOf("") }
+    var commentDraft by remember { mutableStateOf("") }
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -231,6 +241,23 @@ fun ReaderScreen(
                         )
                     }
                 }
+
+                if (activeInteractionParagraphId != null) {
+                    ParagraphInteractionPanel(
+                        comments = comments,
+                        commentDraft = commentDraft,
+                        onCommentChange = { commentDraft = it },
+                        onSend = {
+                            onComment(activeInteractionParagraphId, commentDraft)
+                            commentDraft = ""
+                        },
+                        onLike = onToggleCommentLike,
+                        onClose = onCloseInteraction,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(horizontal = 14.dp, vertical = 88.dp),
+                    )
+                }
             }
         }
 
@@ -294,6 +321,14 @@ fun ReaderScreen(
                     selectionStartSeq = null
                     selectionEndSeq = null
                 },
+                onComment = {
+                    val paragraph = selectedParagraphs.first()
+                    onOpenInteraction(paragraph.id)
+                    commentDraft = noteDraft.ifBlank { selectedParagraphs.joinToString("\n") { it.content }.take(120) }
+                    selectionStartSeq = null
+                    selectionEndSeq = null
+                    notePanelVisible = false
+                },
                 onAsk = {
                     val q = "解释这段话: ${selectedParagraphs.joinToString(" ") { it.content }.take(180)}"
                     question = q
@@ -324,6 +359,7 @@ private fun SelectionToolbar(
     onCopy: () -> Unit,
     onToggleNote: () -> Unit,
     onSaveNote: () -> Unit,
+    onComment: () -> Unit,
     onAsk: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -349,11 +385,53 @@ private fun SelectionToolbar(
             BrDockAction(Icons.Filled.ContentCopy, "复制", onCopy)
             BrDockAction(Icons.Filled.Highlight, "划线", onHighlight)
             BrDockAction(Icons.Filled.EditNote, "写想法", onToggleNote)
+            BrDockAction(Icons.Filled.Forum, "段评", onComment)
             BrDockAction(Icons.Filled.Psychology, "AI 问书", onAsk)
             BrDockAction(Icons.Filled.Headphones, "听当前", onClick = {})
             IconButton(onClick = onClose, modifier = Modifier.size(38.dp)) {
                 Icon(Icons.Filled.Close, contentDescription = "关闭", tint = Color.White)
             }
+        }
+    }
+}
+
+@Composable
+private fun ParagraphInteractionPanel(
+    comments: List<CommentItemDto>,
+    commentDraft: String,
+    onCommentChange: (String) -> Unit,
+    onSend: () -> Unit,
+    onLike: (CommentItemDto) -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    InfoCard(title = "段评", modifier = modifier.fillMaxWidth()) {
+        if (comments.isEmpty()) {
+            Text("还没有段评。我们先写第一条。", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            comments.take(4).forEach { comment ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(comment.content, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    FilledTonalButton(onClick = { onLike(comment) }) {
+                        Icon(Icons.Filled.ThumbUp, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(comment.likeCount.toString())
+                    }
+                }
+            }
+        }
+        BrTextField(
+            value = commentDraft,
+            onValueChange = onCommentChange,
+            label = "写段评",
+            minLines = 2,
+            singleLine = false,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            FilledTonalButton(onClick = onClose) { Text("收起") }
+            Spacer(Modifier.width(8.dp))
+            BrButton(text = "发布", onClick = onSend, enabled = commentDraft.isNotBlank())
         }
     }
 }

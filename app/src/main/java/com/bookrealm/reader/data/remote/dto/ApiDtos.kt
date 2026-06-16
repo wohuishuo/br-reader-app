@@ -111,6 +111,36 @@ data class MarkItemDto(
 )
 
 @Serializable
+data class SaveCommentRequest(
+    val userId: Long,
+    val bookId: Long,
+    val chapterId: Long,
+    val paragraphId: Long,
+    val content: String,
+)
+
+@Serializable
+data class CommentItemDto(
+    val id: Long = 0,
+    val userId: Long = 0,
+    val bookId: Long = 0,
+    val chapterId: Long = 0,
+    val paragraphId: Long = 0,
+    val paragraphSeq: Int = 0,
+    val content: String = "",
+    val likeCount: Long = 0,
+    val likedByMe: Boolean = false,
+    val updateTime: String = "",
+)
+
+@Serializable
+data class ParagraphInteractionDto(
+    val paragraphId: Long = 0,
+    val marks: List<MarkItemDto> = emptyList(),
+    val comments: List<CommentItemDto> = emptyList(),
+)
+
+@Serializable
 data class ReadingProgressRequest(
     val userId: Long,
     val bookId: Long,

@@ -16,8 +16,11 @@ import com.bookrealm.reader.data.remote.dto.AiSummaryRequest
 import com.bookrealm.reader.data.remote.dto.BookDetailDto
 import com.bookrealm.reader.data.remote.dto.BookItemDto
 import com.bookrealm.reader.data.remote.dto.ChapterDetailDto
+import com.bookrealm.reader.data.remote.dto.CommentItemDto
 import com.bookrealm.reader.data.remote.dto.MarkItemDto
+import com.bookrealm.reader.data.remote.dto.ParagraphInteractionDto
 import com.bookrealm.reader.data.remote.dto.ReadingProgressRequest
+import com.bookrealm.reader.data.remote.dto.SaveCommentRequest
 import com.bookrealm.reader.data.remote.dto.SaveMarkRequest
 import com.bookrealm.reader.data.remote.dto.UserLoginRequest
 import kotlinx.coroutines.flow.Flow
@@ -104,6 +107,36 @@ class ReaderRepository @Inject constructor(
             note = note,
         )
     ).requireData()
+
+    suspend fun saveComment(
+        userId: Long,
+        bookId: Long,
+        chapterId: Long,
+        paragraphId: Long,
+        content: String,
+    ): CommentItemDto = libraryApi.saveComment(
+        SaveCommentRequest(
+            userId = userId,
+            bookId = bookId,
+            chapterId = chapterId,
+            paragraphId = paragraphId,
+            content = content,
+        )
+    ).requireData()
+
+    suspend fun paragraphInteraction(userId: Long, paragraphId: Long): ParagraphInteractionDto {
+        if (userId <= 0) return ParagraphInteractionDto(paragraphId = paragraphId)
+        return libraryApi.paragraphInteraction(paragraphId, userId).requireData()
+    }
+
+    suspend fun toggleCommentLike(userId: Long, comment: CommentItemDto): CommentItemDto {
+        if (userId <= 0) error("登录后才能点赞")
+        return if (comment.likedByMe) {
+            libraryApi.unlikeComment(comment.id, userId).requireData()
+        } else {
+            libraryApi.likeComment(comment.id, userId).requireData()
+        }
+    }
 
     suspend fun saveFontScale(scale: Float) = sessionStore.saveFontScale(scale)
 

@@ -4,6 +4,7 @@ import com.bookrealm.reader.data.remote.dto.BaseResponse
 import com.bookrealm.reader.data.remote.dto.BookDetailDto
 import com.bookrealm.reader.data.remote.dto.BookListResponse
 import com.bookrealm.reader.data.remote.dto.ChapterDetailDto
+import com.bookrealm.reader.data.remote.dto.CommentItemDto
 import com.bookrealm.reader.data.remote.dto.AiAskRequest
 import com.bookrealm.reader.data.remote.dto.AiAskResponse
 import com.bookrealm.reader.data.remote.dto.AiEmbedRequest
@@ -12,8 +13,10 @@ import com.bookrealm.reader.data.remote.dto.AiSummaryRequest
 import com.bookrealm.reader.data.remote.dto.AiSummaryResponse
 import com.bookrealm.reader.data.remote.dto.LoginUserResponse
 import com.bookrealm.reader.data.remote.dto.MarkItemDto
+import com.bookrealm.reader.data.remote.dto.ParagraphInteractionDto
 import com.bookrealm.reader.data.remote.dto.ReadingProgressRequest
 import com.bookrealm.reader.data.remote.dto.ReadingStatsResponse
+import com.bookrealm.reader.data.remote.dto.SaveCommentRequest
 import com.bookrealm.reader.data.remote.dto.SaveMarkRequest
 import com.bookrealm.reader.data.remote.dto.UserLoginRequest
 import retrofit2.http.DELETE
@@ -50,6 +53,18 @@ interface LibraryApi {
 
     @DELETE("marks/{id}")
     suspend fun deleteMark(@Path("id") id: Long, @Query("userId") userId: Long): BaseResponse<Boolean>
+
+    @POST("comments")
+    suspend fun saveComment(@Body request: SaveCommentRequest): BaseResponse<CommentItemDto>
+
+    @GET("paragraphs/{id}/interactions")
+    suspend fun paragraphInteraction(@Path("id") paragraphId: Long, @Query("userId") userId: Long): BaseResponse<ParagraphInteractionDto>
+
+    @POST("comments/{id}/like")
+    suspend fun likeComment(@Path("id") id: Long, @Query("userId") userId: Long): BaseResponse<CommentItemDto>
+
+    @DELETE("comments/{id}/like")
+    suspend fun unlikeComment(@Path("id") id: Long, @Query("userId") userId: Long): BaseResponse<CommentItemDto>
 }
 
 interface StatsApi {
